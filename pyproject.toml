@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bulletlab"
+version = "0.1.0"
+description = "A fast, lightweight, research-oriented robotics experimentation workbench built on PyBullet"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "BulletLab Contributors" }]
+requires-python = ">=3.10"
+keywords = ["robotics", "simulation", "pybullet", "reinforcement-learning", "physics"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pybullet>=3.2.6",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "pyyaml>=6.0",
+    "imgui[glfw]>=2.0.0",
+    "pyqtgraph>=0.13.3",
+    "PyQt5>=5.15.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "mkdocs>=1.5.0",
+    "mkdocstrings[python]>=0.23.0",
+    "mkdocs-material>=9.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/bulletlab/bulletlab"
+Documentation = "https://bulletlab.readthedocs.io"
+Repository = "https://github.com/bulletlab/bulletlab"
+Issues = "https://github.com/bulletlab/bulletlab/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bulletlab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["bulletlab"]
+omit = ["tests/*", "examples/*", "docs/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
