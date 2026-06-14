@@ -7,14 +7,14 @@ name = "bulletlab"
 version = "0.1.0"
 description = "A high-level robotics simulation and experimentation framework built on PyBullet."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Ranasurya Ghosh", email = "ranasuryaghosh@gmail.com" }
 ]
 maintainers = [
     { name = "Ranasurya Ghosh" }
 ]
-requires-python = "3.10"
+requires-python = ">=3.10"
 keywords = ["robotics", "simulation", "pybullet", "reinforcement-learning", "physics", "ImGui", "3D", "graphics", "research", "telemetry", "robot-control", "robotics-framework"]
 classifiers = [
     "Development Status :: 3 - Alpha",
