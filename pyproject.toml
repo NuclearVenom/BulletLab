@@ -5,23 +5,37 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bulletlab"
 version = "0.1.0"
-description = "A fast, lightweight, research-oriented robotics experimentation workbench built on PyBullet"
+description = "A high-level robotics simulation and experimentation framework built on PyBullet."
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "BulletLab Contributors" }]
-requires-python = ">=3.10"
-keywords = ["robotics", "simulation", "pybullet", "reinforcement-learning", "physics"]
+authors = [
+    { name = "Ranasurya Ghosh", email = "ranasuryaghosh@gmail.com" }
+]
+maintainers = [
+    { name = "Ranasurya Ghosh" }
+]
+requires-python = "3.10"
+keywords = ["robotics", "simulation", "pybullet", "reinforcement-learning", "physics", "ImGui", "3D", "graphics", "research", "telemetry", "robot-control", "robotics-framework"]
 classifiers = [
     "Development Status :: 3 - Alpha",
+
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+
     "License :: OSI Approved :: MIT License",
+
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+
+    "Operating System :: OS Independent",
+
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "pybullet>=3.2.6",
@@ -44,10 +58,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/bulletlab/bulletlab"
-Documentation = "https://bulletlab.readthedocs.io"
-Repository = "https://github.com/bulletlab/bulletlab"
-Issues = "https://github.com/bulletlab/bulletlab/issues"
+Repository = "https://github.com/NuclearVenom/BulletLab"
 
 [tool.setuptools.packages.find]
 where = ["."]

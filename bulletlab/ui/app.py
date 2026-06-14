@@ -273,61 +273,74 @@ class BulletLabUI:
     # ------------------------------------------------------------------
 
     def _render_frame(self) -> None:
-        """Render all panel windows for one frame."""
+        """Render all panels inside a single full-screen ImGui window."""
         self._render_main_menu()
 
         w, h = glfw.get_window_size(self._window)
-        panel_w = w
-        half_h = h // 2
-        third_h = h // 3
+        menu_h = 20  # approx height of the main menu bar
 
-        # Explorer (top-left)
+        # One full-screen, non-movable, non-resizable window that fills the
+        # entire GLFW client area below the menu bar.
+        imgui.set_next_window_position(0, menu_h)
+        imgui.set_next_window_size(w, h - menu_h)
+        imgui.begin(
+            "##main",
+            flags=(
+                imgui.WINDOW_NO_TITLE_BAR
+                | imgui.WINDOW_NO_RESIZE
+                | imgui.WINDOW_NO_MOVE
+            ),
+        )
+
+        # ── Custom panels (shown first so they're immediately visible) ──────
+        for cp in self._custom_panels:
+            label = cp.title
+            if imgui.collapsing_header(label, flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                imgui.indent(8)
+                cp.render_fn()
+                imgui.unindent(8)
+            imgui.spacing()
+
+        # ── Built-in panels ──────────────────────────────────────────────────
         if self._show_explorer and self._explorer is not None:
-            imgui.set_next_window_position(0, 20, condition=imgui.ONCE)
-            imgui.set_next_window_size(panel_w // 2, half_h, condition=imgui.ONCE)
-            imgui.begin("Explorer")
-            self._explorer.render()
-            imgui.end()
+            if imgui.collapsing_header("Explorer", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                imgui.indent(8)
+                self._explorer.render()
+                imgui.unindent(8)
+            imgui.spacing()
 
-        # Properties (top-right)
         if self._show_properties and self._properties is not None:
             if self._explorer is not None:
                 self._properties.set_target(self._explorer.selected_object)
-            imgui.set_next_window_position(panel_w // 2, 20, condition=imgui.ONCE)
-            imgui.set_next_window_size(panel_w // 2, half_h, condition=imgui.ONCE)
-            imgui.begin("Properties")
-            self._properties.render()
-            imgui.end()
+            if imgui.collapsing_header("Properties", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                imgui.indent(8)
+                self._properties.render()
+                imgui.unindent(8)
+            imgui.spacing()
 
-        # Telemetry (middle)
         if self._show_telemetry and self._telemetry_panel is not None:
-            imgui.set_next_window_position(0, 20 + half_h, condition=imgui.ONCE)
-            imgui.set_next_window_size(panel_w // 2, third_h, condition=imgui.ONCE)
-            imgui.begin("Telemetry")
-            self._telemetry_panel.render()
-            imgui.end()
+            if imgui.collapsing_header("Telemetry", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                imgui.indent(8)
+                self._telemetry_panel.render()
+                imgui.unindent(8)
+            imgui.spacing()
 
-        # Plots (middle-right)
         if self._show_plots and self._plots_panel is not None:
-            imgui.set_next_window_position(panel_w // 2, 20 + half_h, condition=imgui.ONCE)
-            imgui.set_next_window_size(panel_w // 2, third_h, condition=imgui.ONCE)
-            imgui.begin("Live Plots")
-            self._plots_panel.render()
-            imgui.end()
+            if imgui.collapsing_header("Live Plots", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                imgui.indent(8)
+                self._plots_panel.render()
+                imgui.unindent(8)
+            imgui.spacing()
 
-        # Console (bottom)
         if self._show_console and self._console is not None:
-            imgui.set_next_window_position(0, 20 + half_h + third_h, condition=imgui.ONCE)
-            imgui.set_next_window_size(panel_w, h - half_h - third_h - 20, condition=imgui.ONCE)
-            imgui.begin("Console")
-            self._console.render()
-            imgui.end()
+            if imgui.collapsing_header("Console", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                imgui.indent(8)
+                self._console.render()
+                imgui.unindent(8)
+            imgui.spacing()
 
-        # Custom panels
-        for cp in self._custom_panels:
-            imgui.begin(cp.title)
-            cp.render_fn()
-            imgui.end()
+        imgui.end()
+
 
     def _render_main_menu(self) -> None:
         """Render the main menu bar."""

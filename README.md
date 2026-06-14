@@ -1,15 +1,20 @@
-# BulletLab 🤖
+# BulletLab
+Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 
-**A fast, lightweight, research-oriented robotics experimentation workbench built on PyBullet.**
+>**A fast, extensible robotics experimentation framework built on PyBullet, designed for rapid prototyping, testing, simulation and learning.**
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+**Install BulletLab library:** `pip install bulletlab`
+
+![BulletLab example UI](assets/bulletlab_ui.png)
 
 ---
 
 ## What is BulletLab?
 
-BulletLab is a high-level Python library that wraps PyBullet to make robotics experimentation significantly easier. Rather than working with raw physics engine IDs and low-level calls, you interact with structured Python objects.
+BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
 
 **Instead of this:**
 ```python

@@ -1,5 +1,7 @@
 """
-BulletLab – A fast, lightweight, research-oriented robotics experimentation workbench.
+BulletLab – A fast, extensible robotics experimentation framework built on PyBullet.
+
+Developed by Ranasurya Ghosh (https://github.com/NuclearVenom/BulletLab)
 
 BulletLab provides a high-level Python API over PyBullet, making robotics
 experimentation significantly easier by exposing robots as structured Python
@@ -30,7 +32,8 @@ from bulletlab.logging.logger import DataLogger
 from bulletlab.plotting.live_plot import LivePlot
 
 __version__ = "0.1.0"
-__author__ = "BulletLab Contributors"
+__author__ = "Ranasurya Ghosh"
+__url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"
 
 __all__ = [

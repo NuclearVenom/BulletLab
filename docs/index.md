@@ -1,8 +1,11 @@
-# BulletLab
+<h1 class="hero-title">BulletLab</h1>
+<div>Developed  by  <span class="author-name">Ranasurya Ghosh</span></div>
 
-**A fast, lightweight, research-oriented robotics experimentation workbench built on PyBullet.**
+---
 
-BulletLab provides a high-level Python API over PyBullet, making robotics experimentation significantly easier. Rather than working with raw physics engine IDs and low-level calls, you interact with structured Python objects.
+**A fast, extensible robotics experimentation framework built on PyBullet, designed for rapid prototyping, testing, simulation and learning.**
+
+BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
 
 ## Why BulletLab?
 
@@ -11,10 +14,10 @@ BulletLab provides a high-level Python API over PyBullet, making robotics experi
 | `p.setJointMotorControl2(robot_id, i, p.VELOCITY_CONTROL, ...)` | `robot.joints["motor"].velocity = 15` |
 | `p.changeDynamics(robot_id, i, mass=5)` | `robot.links["wheel"].mass = 5` |
 | `p.getBasePositionAndOrientation(...)` | `robot.base_position` |
-| Complex IDs everywhere | Named Python objects |
+| **Complex IDs everywhere** | **Named Python objects** |
+
 
 ## Key Features
-
 - 🤖 **Object-oriented robot interface** — joints and links as Python objects
 - 🎮 **ImGui control window** — separate from PyBullet visualization
 - 📊 **Live telemetry** — watch any robot state variable
@@ -50,7 +53,7 @@ pip install bulletlab
 Or from source:
 
 ```bash
-git clone https://github.com/bulletlab/bulletlab
-cd bulletlab
+git clone https://github.com/NuclearVenom/BulletLab.git
+cd BulletLab
 pip install -e ".[dev]"
 ```

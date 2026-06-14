@@ -3,8 +3,8 @@
 ## Setting Up a Development Environment
 
 ```bash
-git clone https://github.com/bulletlab/bulletlab
-cd bulletlab
+git clone https://github.com/NuclearVenom/BulletLab.git
+cd BulletLab
 pip install -e ".[dev]"
 ```
 
