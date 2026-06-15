@@ -6,7 +6,9 @@ Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Install BulletLab library:** `pip install bulletlab`
+**Install BulletLab library:** `pip install bulletlab`<br>
+[Read Documentation](https://nuclearvenom.github.io/BulletLab/)
+<br><br>
 
 ![BulletLab example UI](assets/bulletlab_ui.png)
 
