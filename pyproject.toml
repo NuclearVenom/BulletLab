@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bulletlab"
-version = "0.1.0"
+version = "0.1.1"
 
 description = "A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern ImGui-based controls, telemetry, visualization, and reinforcement learning workflows."
 
