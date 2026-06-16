@@ -10,7 +10,7 @@ Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 [Read Documentation](https://nuclearvenom.github.io/BulletLab/)
 <br><br>
 
-![BulletLab example UI](assets/bulletlab_ui.png)
+![BulletLab example UI](https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/assets/bulletlab_ui.png)
 
 ---
 
@@ -151,13 +151,13 @@ app.run()
 
 BulletLab is completely generic — no code assumes a specific robot type:
 
-- 🚗 Cars & rovers
-- ✈️ Drones & quadrotors
-- 🦾 Robotic arms
-- 🤸 Self-balancing robots
-- 🐕 Quadrupeds
-- 🤖 Humanoids
-- ⚙️ Custom mechanisms
+- Cars & rovers
+- Drones & quadrotors
+- Robotic arms
+- Self-balancing robots
+- Quadrupeds
+- Humanoids
+- Custom mechanisms
 
 ---
 

@@ -18,13 +18,13 @@ BulletLab provides a high-level object-oriented interface to [PyBullet](https://
 
 
 ## Key Features
-- 🤖 **Object-oriented robot interface** — joints and links as Python objects
-- 🎮 **ImGui control window** — separate from PyBullet visualization
-- 📊 **Live telemetry** — watch any robot state variable
-- 📁 **Data logging** — CSV and JSON output
-- 📈 **Live plots** — PyQtGraph-powered real-time charts
-- 🧮 **RL-ready** — clean state/action interface, no ML framework required
-- 🔧 **Generic** — works with any URDF or MJCF robot
+- **Object-oriented robot interface** — joints and links as Python objects
+- **ImGui control window** — separate from PyBullet visualization
+- **Live telemetry** — watch any robot state variable
+- **Data logging** — CSV and JSON output
+- **Live plots** — PyQtGraph-powered real-time charts
+- **RL-ready** — clean state/action interface, no ML framework required
+- **Generic** — works with any URDF or MJCF robot
 
 ## Quick Start
 

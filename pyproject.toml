@@ -5,36 +5,55 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bulletlab"
 version = "0.1.0"
-description = "A high-level robotics simulation and experimentation framework built on PyBullet."
+
+description = "A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern ImGui-based controls, telemetry, visualization, and reinforcement learning workflows."
+
 readme = "README.md"
+
 license = "MIT"
+
 authors = [
     { name = "Ranasurya Ghosh", email = "ranasuryaghosh@gmail.com" }
 ]
+
 maintainers = [
-    { name = "Ranasurya Ghosh" }
+    { name = "Ranasurya Ghosh", email = "ranasuryaghosh@gmail.com" }
 ]
+
 requires-python = ">=3.10"
-keywords = ["robotics", "simulation", "pybullet", "reinforcement-learning", "physics", "ImGui", "3D", "graphics", "research", "telemetry", "robot-control", "robotics-framework"]
+
+keywords = [
+    "robotics",
+    "simulation",
+    "pybullet",
+    "reinforcement-learning",
+    "telemetry",
+    "imgui",
+    "physics",
+    "research",
+    "robot-control",
+    "robotics-framework"
+]
+
 classifiers = [
     "Development Status :: 3 - Alpha",
 
-    "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+
+    "Operating System :: OS Independent",
 
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 
-    "Operating System :: OS Independent",
-
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
 dependencies = [
     "pybullet>=3.2.6",
     "numpy>=1.24.0",
@@ -56,7 +75,10 @@ dev = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/NuclearVenom/BulletLab"
+Documentation = "https://nuclearvenom.bulletlab.docs"
 Repository = "https://github.com/NuclearVenom/BulletLab"
+Issues = "https://github.com/NuclearVenom/BulletLab/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

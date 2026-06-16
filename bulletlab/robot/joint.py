@@ -85,6 +85,23 @@ class Joint:
         self._max_velocity = float(info[11]) if info[11] > 0 else 10.0
 
     # ------------------------------------------------------------------
+    # Safety guard
+    # ------------------------------------------------------------------
+
+    def _check_connected(self) -> bool:
+        """Return True if the physics server is still live.
+
+        Uses ``p.isConnected()`` to query the actual PyBullet runtime rather
+        than BulletLab's internal flag, which only updates on explicit
+        ``sim.stop()`` calls and misses cases where the 3D window is closed
+        by the user independently.
+        """
+        try:
+            return bool(p.isConnected(physicsClientId=self._sim.client_id))
+        except Exception:
+            return False
+
+    # ------------------------------------------------------------------
     # Identity
     # ------------------------------------------------------------------
 
@@ -122,6 +139,8 @@ class Joint:
 
             print(robot.joints["elbow"].position)
         """
+        if not self._check_connected():
+            return 0.0
         state = p.getJointState(
             self._body_id,
             self._index,
@@ -139,6 +158,8 @@ class Joint:
 
             robot.joints["wheel"].velocity = 10.0
         """
+        if not self._check_connected():
+            return 0.0
         state = p.getJointState(
             self._body_id,
             self._index,
@@ -148,6 +169,8 @@ class Joint:
 
     @velocity.setter
     def velocity(self, value: float) -> None:
+        if not self._check_connected():
+            return
         self._control_mode = p.VELOCITY_CONTROL
         p.setJointMotorControl2(
             self._body_id,
@@ -168,6 +191,8 @@ class Joint:
 
             robot.joints["hip"].torque = 20.0
         """
+        if not self._check_connected():
+            return 0.0
         state = p.getJointState(
             self._body_id,
             self._index,
@@ -177,6 +202,8 @@ class Joint:
 
     @torque.setter
     def torque(self, value: float) -> None:
+        if not self._check_connected():
+            return
         self._control_mode = p.TORQUE_CONTROL
         # Disable velocity motor first so torque control can take over
         p.setJointMotorControl2(
@@ -210,6 +237,8 @@ class Joint:
 
             robot.joints["shoulder"].set_position(1.57)   # 90°
         """
+        if not self._check_connected():
+            return
         force = float(max_force) if max_force is not None else self._max_force
         self._control_mode = p.POSITION_CONTROL
         p.setJointMotorControl2(
@@ -277,6 +306,8 @@ class Joint:
             robot.joints["motor"].enable()
         """
         self._enabled = True
+        if not self._check_connected():
+            return
         p.setJointMotorControl2(
             self._body_id,
             self._index,
@@ -294,6 +325,8 @@ class Joint:
             robot.joints["motor"].disable()
         """
         self._enabled = False
+        if not self._check_connected():
+            return
         p.setJointMotorControl2(
             self._body_id,
             self._index,
@@ -326,6 +359,8 @@ class Joint:
 
             robot.joints["shoulder"].reset(pos=1.0, vel=0.0)
         """
+        if not self._check_connected():
+            return
         p.resetJointState(
             self._body_id,
             self._index,
@@ -345,6 +380,8 @@ class Joint:
         Note:
             Requires enabling joint force sensors via PyBullet first.
         """
+        if not self._check_connected():
+            return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         state = p.getJointState(
             self._body_id,
             self._index,
@@ -357,7 +394,9 @@ class Joint:
     # ------------------------------------------------------------------
 
     def __repr__(self) -> str:
-        return (
-            f"Joint({self._name!r}, type={self._joint_type}, "
-            f"pos={self.position:.3f}, vel={self.velocity:.3f})"
-        )
+        if self._check_connected():
+            return (
+                f"Joint({self._name!r}, type={self._joint_type}, "
+                f"pos={self.position:.3f}, vel={self.velocity:.3f})"
+            )
+        return f"Joint({self._name!r}, type={self._joint_type}, disconnected)"

@@ -170,6 +170,13 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nSimulation stopped by user.")
 
+    except Exception as e:
+        # Catches pybullet.error when the 3D window is closed externally
+        if "isConnected" in str(e) or "Joint index" in str(e) or "connect" in str(e).lower():
+            print("\nSimulation window closed.")
+        else:
+            raise
+
     finally:
         logger.stop()
         print(f"\nLogged {logger.step_count} steps to rover_run.csv")

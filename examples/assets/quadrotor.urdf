@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<robot name="quadrotor">
+  <link name="base_link">
+    <visual>
+      <geometry><box size="0.4 0.4 0.1"/></geometry>
+    </visual>
+    <collision>
+      <geometry><box size="0.4 0.4 0.1"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.02" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <link name="rotor_fl">
+    <visual><geometry><cylinder radius="0.08" length="0.02"/></geometry></visual>
+    <collision><geometry><cylinder radius="0.08" length="0.02"/></geometry></collision>
+    <inertial><mass value="0.05"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.0001" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <joint name="rotor_fl_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rotor_fl"/>
+    <origin xyz="0.15 0.15 0.06"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="rotor_fr">
+    <visual><geometry><cylinder radius="0.08" length="0.02"/></geometry></visual>
+    <collision><geometry><cylinder radius="0.08" length="0.02"/></geometry></collision>
+    <inertial><mass value="0.05"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.0001" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <joint name="rotor_fr_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rotor_fr"/>
+    <origin xyz="0.15 -0.15 0.06"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="rotor_rl">
+    <visual><geometry><cylinder radius="0.08" length="0.02"/></geometry></visual>
+    <collision><geometry><cylinder radius="0.08" length="0.02"/></geometry></collision>
+    <inertial><mass value="0.05"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.0001" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <joint name="rotor_rl_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rotor_rl"/>
+    <origin xyz="-0.15 0.15 0.06"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="rotor_rr">
+    <visual><geometry><cylinder radius="0.08" length="0.02"/></geometry></visual>
+    <collision><geometry><cylinder radius="0.08" length="0.02"/></geometry></collision>
+    <inertial><mass value="0.05"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.0001" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <joint name="rotor_rr_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rotor_rr"/>
+    <origin xyz="-0.15 -0.15 0.06"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+</robot>
