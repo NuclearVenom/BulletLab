@@ -4,7 +4,7 @@ site_description: A fast, lightweight, research-oriented robotics experimentatio
 site_author: Ranasurya Ghosh
 
 repo_url: https://github.com/NuclearVenom/BulletLab
-repo_name: BulletLab
+repo_name: NuclearVenom/BulletLab
 
 theme:
   name: material
