@@ -1,5 +1,5 @@
 <h1>
-  <img src="assets/logo.png" width="40" align="center" alt="[logo]">
+  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/assets/logo.png" width="40" align="center" alt="[logo]">
   BulletLab
 </h1>
 
