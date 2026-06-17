@@ -1,12 +1,17 @@
-# BulletLab
+<h1>
+  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/assets/logo.png" width="40" align="center" alt="[logo]">
+  BulletLab
+</h1>
+
 Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 
->**A fast, extensible robotics experimentation framework built on PyBullet, designed for rapid prototyping, testing, simulation and learning.**
+
+>**A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern ImGui-based controls, telemetry, visualization, and reinforcement learning workflows.**
 
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Install BulletLab library:** `pip install bulletlab`<br>
+**Install BulletLab library:** `pip install bulletlab`<br><br>
 [Read Documentation](https://nuclearvenom.github.io/BulletLab/)
 <br><br>
 

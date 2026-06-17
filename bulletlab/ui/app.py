@@ -175,6 +175,9 @@ class BulletLabUI:
             glfw.terminate()
             raise RuntimeError("Failed to create GLFW window.")
 
+        # Set window icon from assets/logo.png
+        self._set_window_icon()
+
         glfw.make_context_current(self._window)
         glfw.swap_interval(1)  # vsync
 
@@ -206,6 +209,32 @@ class BulletLabUI:
             glfw.terminate()
         self._window = None
         self._impl = None
+
+    def _set_window_icon(self) -> None:
+        """Load assets/logo.png and set it as the GLFW window icon.
+
+        Silently skips if Pillow is not installed or the file is missing.
+        The icon is displayed in the OS taskbar and the window title bar.
+        """
+        try:
+            from PIL import Image
+            import numpy as np
+            from pathlib import Path
+
+            # Search: next to this file, then from CWD, then from repo root
+            candidates = [
+                Path(__file__).parent.parent.parent / "assets" / "logo.png",
+                Path.cwd() / "assets" / "logo.png",
+            ]
+            icon_path = next((p for p in candidates if p.exists()), None)
+            if icon_path is None:
+                return
+
+            img = Image.open(icon_path).convert("RGBA").resize((64, 64), Image.LANCZOS)
+            pixels = np.array(img, dtype=np.uint8)
+            glfw.set_window_icon(self._window, 1, [pixels])
+        except Exception:
+            pass   # non-fatal — icon is cosmetic only
 
     # ------------------------------------------------------------------
     # Main loops

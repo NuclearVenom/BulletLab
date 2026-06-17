@@ -1,9 +1,14 @@
-<h1 class="hero-title">BulletLab</h1>
+<h1>
+  <img src="assets/logo.png" width="40" align="center" alt="[logo]">
+  BulletLab
+</h1>
+
 <div>Developed  by  <span class="author-name">Ranasurya Ghosh</span></div>
+
 
 ---
 
-**A fast, extensible robotics experimentation framework built on PyBullet, designed for rapid prototyping, testing, simulation and learning.**
+**A high-level robotics simulation and experimentation framework built on PyBullet.**
 
 BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
 

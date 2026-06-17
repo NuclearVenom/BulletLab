@@ -31,7 +31,7 @@ from bulletlab.telemetry.manager import TelemetryManager
 from bulletlab.logging.logger import DataLogger
 from bulletlab.plotting.live_plot import LivePlot
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __author__ = "Ranasurya Ghosh"
 __url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"

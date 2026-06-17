@@ -1,4 +1,5 @@
 site_name: BulletLab
+site_url: https://nuclearvenom.github.io/BulletLab/
 site_description: A fast, lightweight, research-oriented robotics experimentation workbench built on PyBullet
 site_author: Ranasurya Ghosh
 
@@ -7,6 +8,8 @@ repo_name: BulletLab
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.png
   palette:
     - scheme: slate
       primary: blue
@@ -27,8 +30,6 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
-  icon:
-    repo: fontawesome/brands/github
 
 extra_css:
   - styles.css
