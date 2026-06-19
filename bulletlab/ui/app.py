@@ -98,6 +98,8 @@ class BulletLabUI:
         sim: "Simulation",
         robots: list["Robot"] | None = None,
         telemetry: "TelemetryManager | None" = None,
+        camera: "Any | None" = None,
+        highlighter: "Any | None" = None,
         width: int = 600,
         height: int = 800,
         title: str = "BulletLab",
@@ -105,12 +107,18 @@ class BulletLabUI:
         self._sim = sim
         self._robots: list["Robot"] = list(robots or [])
         self._telemetry = telemetry
+        self._camera = camera          # CameraFollow instance (optional)
+        self._highlighter = highlighter  # RobotHighlighter instance (optional)
         self._width = width
         self._height = height
         self._title = title
 
         self._window: Any = None
         self._impl: Any = None
+        self._imgui_context: Any = None
+        self._console_window: Any = None
+        self._console_impl: Any = None
+        self._console_imgui_context: Any = None
         self._running = False
         self._should_close = False
 
@@ -182,7 +190,7 @@ class BulletLabUI:
         glfw.swap_interval(1)  # vsync
 
         # Style ImGui
-        imgui.create_context()
+        self._imgui_context = imgui.create_context()
         self._apply_style()
 
         self._impl = imgui_glfw.GlfwRenderer(self._window)
@@ -202,13 +210,16 @@ class BulletLabUI:
         if not self._running:
             return
         self._running = False
+        self._close_console_window()
         if self._impl is not None:
+            self._restore_main_context()
             self._impl.shutdown()
         if self._window is not None and glfw is not None:
             glfw.destroy_window(self._window)
             glfw.terminate()
         self._window = None
         self._impl = None
+        self._imgui_context = None
 
     def _set_window_icon(self) -> None:
         """Load assets/logo.png and set it as the GLFW window icon.
@@ -280,17 +291,27 @@ class BulletLabUI:
             self._should_close = True
             return
 
+        self._restore_main_context()
         glfw.poll_events()
         self._impl.process_inputs()
+
+        # Highlighter: reset pending hover before the frame renders
+        if self._highlighter is not None:
+            self._highlighter.begin_frame()
 
         imgui.new_frame()
         self._render_frame()
         imgui.render()
 
+        # Highlighter: commit pending hover → update 3D colours
+        if self._highlighter is not None:
+            self._highlighter.end_frame()
+
         gl.glClearColor(0.1, 0.1, 0.12, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         self._impl.render(imgui.get_draw_data())
         glfw.swap_buffers(self._window)
+        self._render_console_window()
 
     @property
     def should_close(self) -> bool:
@@ -321,7 +342,10 @@ class BulletLabUI:
             ),
         )
 
-        # ── Custom panels (shown first so they're immediately visible) ──────
+        # ── Camera panel (shown first when a CameraFollow is registered) ──────
+        self._render_camera_panel()
+
+        # ── Custom panels (shown next so they're immediately visible) ────────
         for cp in self._custom_panels:
             label = cp.title
             if imgui.collapsing_header(label, flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
@@ -370,6 +394,182 @@ class BulletLabUI:
 
         imgui.end()
 
+    # ------------------------------------------------------------------
+    # Native console window
+    # ------------------------------------------------------------------
+
+    def _restore_main_context(self) -> None:
+        """Make the main GLFW and ImGui contexts current."""
+        if self._window is not None:
+            glfw.make_context_current(self._window)
+        if self._imgui_context is not None:
+            imgui.set_current_context(self._imgui_context)
+
+    def _open_console_window(self) -> bool:
+        """Create the separate native window used by the expanded console."""
+        if self._console_window is not None:
+            return True
+
+        self._console_window = glfw.create_window(
+            900, 650, "BulletLab Console", None, self._window
+        )
+        if not self._console_window:
+            self._console_window = None
+            if self._console is not None:
+                self._console.log("Could not create the separate console window.")
+                self._console.collapse()
+            self._restore_main_context()
+            return False
+
+        main_x, main_y = glfw.get_window_pos(self._window)
+        glfw.set_window_pos(self._console_window, main_x + 80, main_y + 80)
+        glfw.make_context_current(self._console_window)
+        glfw.swap_interval(1)
+
+        self._console_imgui_context = imgui.create_context()
+        # ImGui only makes a newly created context current when no context
+        # already exists. Select it explicitly before the renderer builds its
+        # device objects and font atlas.
+        imgui.set_current_context(self._console_imgui_context)
+        self._apply_style()
+        self._console_impl = imgui_glfw.GlfwRenderer(self._console_window)
+        # pyimgui's GLFW character callback looks up the current global ImGui
+        # context. Event polling happens while the main context is current, so
+        # route text input explicitly to the console context.
+        glfw.set_char_callback(
+            self._console_window,
+            self._console_char_callback,
+        )
+        self._restore_main_context()
+        return True
+
+    def _console_char_callback(self, window: Any, codepoint: int) -> None:
+        """Route native console text input to its own ImGui context."""
+        if self._console_impl is None or self._console_imgui_context is None:
+            return
+        imgui.set_current_context(self._console_imgui_context)
+        try:
+            self._console_impl.char_callback(window, codepoint)
+        finally:
+            if self._imgui_context is not None:
+                imgui.set_current_context(self._imgui_context)
+
+    def _render_console_window(self) -> None:
+        """Render one frame of the expanded console's native window."""
+        if self._console is None or not self._console.is_expanded:
+            self._close_console_window()
+            return
+
+        if not self._open_console_window():
+            return
+
+        if glfw.window_should_close(self._console_window):
+            self._console.collapse()
+            self._close_console_window()
+            return
+
+        glfw.make_context_current(self._console_window)
+        imgui.set_current_context(self._console_imgui_context)
+        self._console_impl.process_inputs()
+        imgui.new_frame()
+
+        width, height = glfw.get_window_size(self._console_window)
+        imgui.set_next_window_position(0, 0)
+        imgui.set_next_window_size(width, height)
+        imgui.begin(
+            "##native_console_host",
+            flags=(
+                imgui.WINDOW_NO_TITLE_BAR
+                | imgui.WINDOW_NO_RESIZE
+                | imgui.WINDOW_NO_MOVE
+                | imgui.WINDOW_NO_COLLAPSE
+            ),
+        )
+        self._console.render_expanded()
+        imgui.end()
+        imgui.render()
+
+        gl.glClearColor(0.1, 0.1, 0.12, 1.0)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        self._console_impl.render(imgui.get_draw_data())
+        glfw.swap_buffers(self._console_window)
+
+        if not self._console.is_expanded:
+            self._close_console_window()
+        else:
+            self._restore_main_context()
+
+    def _close_console_window(self) -> None:
+        """Destroy the native console window and its ImGui resources."""
+        if self._console_window is None:
+            return
+
+        glfw.make_context_current(self._console_window)
+        if self._console_imgui_context is not None:
+            imgui.set_current_context(self._console_imgui_context)
+        if self._console_impl is not None:
+            self._console_impl.shutdown()
+        if self._console_imgui_context is not None:
+            imgui.destroy_context(self._console_imgui_context)
+        glfw.destroy_window(self._console_window)
+
+        self._console_window = None
+        self._console_impl = None
+        self._console_imgui_context = None
+        self._restore_main_context()
+
+    def _render_camera_panel(self) -> None:
+        """Render the built-in Camera Follow control panel.
+
+        Only visible when a :class:`~bulletlab.core.camera.CameraFollow`
+        was passed to the constructor via ``camera=``.
+        """
+        if self._camera is None:
+            return
+
+        cam = self._camera
+        if imgui.collapsing_header("Camera", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            imgui.indent(8)
+
+            # ── Enable / disable toggle ─────────────────────────────────────
+            changed, new_val = imgui.checkbox("Dynamic Follow", cam.enabled)
+            if changed:
+                cam.enabled = new_val
+            imgui.same_line(spacing=12)
+            status = "ON" if cam.enabled else "OFF"
+            color  = (0.3, 0.9, 0.4, 1.0) if cam.enabled else (0.6, 0.6, 0.6, 1.0)
+            imgui.text_colored(f"[{status}]", *color)
+
+            if cam.enabled:
+                imgui.spacing()
+
+                # ── Mode label ──────────────────────────────────────────────
+                imgui.text(f"Mode:  {cam.mode}")
+
+                # ── Distance slider ──────────────────────────────────────────
+                changed, val = imgui.slider_float(
+                    "Distance", cam.distance, 1.0, 20.0, "%.1f m"
+                )
+                if changed:
+                    cam.distance = val
+
+                # ── Lerp / smoothness slider ─────────────────────────────────
+                if cam.mode in ("smooth", "chase"):
+                    changed, val = imgui.slider_float(
+                        "Smoothness", 1.0 - cam.lerp, 0.0, 0.99, "%.2f"
+                    )
+                    if changed:
+                        cam.lerp = 1.0 - val   # invert: high = smoother
+
+                # ── Pitch slider ─────────────────────────────────────────────
+                changed, val = imgui.slider_float(
+                    "Pitch", cam.pitch, -89.0, 0.0, "%.0f°"
+                )
+                if changed:
+                    cam.pitch = val
+
+            imgui.unindent(8)
+        imgui.spacing()
 
     def _render_main_menu(self) -> None:
         """Render the main menu bar."""
@@ -422,8 +622,9 @@ class BulletLabUI:
         self._explorer = ExplorerPanel(
             sim=self._sim,
             robots=self._robots,
+            highlighter=self._highlighter,
         )
-        self._properties = PropertiesPanel()
+        self._properties = PropertiesPanel(highlighter=self._highlighter)
 
         if self._telemetry is not None:
             self._telemetry_panel = TelemetryPanel(self._telemetry)

@@ -1,6 +1,8 @@
 <h1>
-  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/docs/assets/logo.png" width="60" align="center" alt="[logo]">
-  BulletLab
+  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/docs/assets/logo.png" width="80" align="top" alt="[logo]"> 
+  <span class="hero-title">
+  BulletLab 
+  </span>
 </h1>
 
 <div>Developed  by  <span class="author-name">Ranasurya Ghosh</span></div>

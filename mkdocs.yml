@@ -58,12 +58,18 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Quick Start: quickstart.md
+  - User Guide:
+      - Quick Start: quickstart.md
+      - Cookbook & Snippets: cookbook.md
+      - Core Concepts: concepts.md
+      - Using the UI: ui_guide.md
   - API Reference:
     - Simulation: api/simulation.md
     - Robot: api/robot.md
     - Joint: api/joint.md
     - Link: api/link.md
+    - CameraFollow: api/camera.md
+    - RobotHighlighter: api/highlighter.md
     - TelemetryManager: api/telemetry.md
     - DataLogger: api/logging.md
     - LivePlot: api/plotting.md

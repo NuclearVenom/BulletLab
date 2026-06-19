@@ -6,6 +6,8 @@ Demonstrates basic wheel velocity control using the Husky robot from pybullet_da
 What this shows:
 - Loading a robot by name using pybullet_data
 - Setting joint velocities by name
+- Smooth camera that follows the robot (CameraFollow)
+- Joint/link highlighting on hover (RobotHighlighter)
 - Monitoring base telemetry (position, speed, roll)
 - Logging data to CSV
 - Simple BulletLabUI control window
@@ -23,7 +25,7 @@ from pathlib import Path
 # Ensure bulletlab is importable from the repo root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bulletlab import Simulation, Robot
+from bulletlab import Simulation, Robot, CameraFollow, RobotHighlighter
 from bulletlab.core.world import World
 from bulletlab.telemetry import TelemetryManager
 from bulletlab.logging import DataLogger
@@ -38,6 +40,7 @@ def main() -> None:
     # ──────────────────────────────────────────────
     sim = Simulation(mode="gui", gravity=(0, 0, -9.81), timestep=1.0 / 240.0)
     sim.start()
+    # Initial camera — CameraFollow will take over once the robot is loaded
     sim.set_camera(distance=4.0, yaw=50.0, pitch=-30.0, target=(0, 0, 0.5))
 
     # ──────────────────────────────────────────────
@@ -67,7 +70,25 @@ def main() -> None:
     print(f"  State dim: {len(robot.get_state())}\n")
 
     # ──────────────────────────────────────────────
-    # 4. Set up telemetry
+    # 4. Smooth camera follow
+    # ──────────────────────────────────────────────
+    cam = CameraFollow(
+        robot, sim,
+        mode="smooth",
+        distance=4.0,
+        pitch=-30.0,
+        yaw=50.0,
+        lerp=0.06,        # gentle glide — lower = slower/smoother
+        height_offset=0.3,
+    )
+
+    # ──────────────────────────────────────────────
+    # 5. Joint / link hover highlighting
+    # ──────────────────────────────────────────────
+    hl = RobotHighlighter(robot, sim)
+
+    # ──────────────────────────────────────────────
+    # 6. Set up telemetry
     # ──────────────────────────────────────────────
     telemetry = TelemetryManager()
     telemetry.watch("x",       lambda: robot.base_position[0], unit="m")
@@ -78,7 +99,7 @@ def main() -> None:
     telemetry.watch("pitch",   lambda: math.degrees(robot.pitch), unit="°")
 
     # ──────────────────────────────────────────────
-    # 5. Set up data logger
+    # 7. Set up data logger
     # ──────────────────────────────────────────────
     logger = DataLogger()
     logger.watch("speed",   lambda: robot.speed)
@@ -89,19 +110,19 @@ def main() -> None:
     print("Logging to: rover_run.csv\n")
 
     # ──────────────────────────────────────────────
-    # 6. Try to launch UI (optional)
+    # 8. Try to launch UI (optional)
     # ──────────────────────────────────────────────
     ui = None
     try:
         from bulletlab.ui import BulletLabUI
-        ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry)
+        ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry, camera=cam, highlighter=hl)
         ui.start()
         print("BulletLab control window opened.\n")
     except Exception as exc:
         print(f"UI not available ({exc}). Running headless.\n")
 
     # ──────────────────────────────────────────────
-    # 7. Simulation loop
+    # 9. Simulation loop
     # ──────────────────────────────────────────────
     print("Running simulation. Press Ctrl+C to stop.\n")
 
@@ -125,7 +146,7 @@ def main() -> None:
     phase = 0
     step = 0
     try:
-        while True:
+        while sim.is_connected:
             # Simple phase-based motion: forward → turn → forward → turn
             phase_steps = 480  # 2 seconds at 240Hz
             t = step % (phase_steps * 4)
@@ -147,6 +168,7 @@ def main() -> None:
                     joint.velocity = right_vel
 
             sim.step()
+            cam.update()                        # smooth camera follows the rover
             telemetry.update(t=sim.elapsed_time)
             logger.step(t=sim.elapsed_time)
 

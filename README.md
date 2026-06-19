@@ -131,6 +131,45 @@ for _ in range(1000):
     plot.update()
 ```
 
+### Camera Follow
+
+```python
+from bulletlab import Simulation, Robot, CameraFollow
+
+sim = Simulation(mode="gui").start()
+robot = Robot.load("husky/husky.urdf", sim=sim, position=(0, 0, 0.3))
+
+# One line — camera glides after the robot (smooth mode by default)
+cam = CameraFollow(robot, sim)
+
+# Or pick a mode:
+cam = CameraFollow(robot, sim, mode="snap")    # locks instantly
+cam = CameraFollow(robot, sim, mode="smooth")  # cinematic glide
+cam = CameraFollow(robot, sim, mode="chase")   # always behind the robot
+
+while sim.is_connected:
+    sim.step()
+    cam.update()   # ← one call keeps the camera centred on the robot
+```
+
+### Hover Highlighting
+
+```python
+from bulletlab import Simulation, Robot, RobotHighlighter
+from bulletlab.ui import BulletLabUI
+
+sim = Simulation(mode="gui").start()
+robot = Robot.load("kuka_iiwa/model.urdf", sim=sim)
+
+# One line — hover any joint/link in the UI to see it glow in 3D
+hl = RobotHighlighter(robot, sim)
+app = BulletLabUI(sim=sim, robots=[robot], highlighter=hl)
+app.run()
+```
+
+Hovering over an Explorer row or a Properties slider instantly highlights
+the matching 3D part in the PyBullet window with an orange pulsing glow.
+
 ### ImGui Control Panel
 
 ```python
@@ -229,6 +268,13 @@ pytest tests/ -v --cov=bulletlab --cov-report=term-missing
 | Plotting | PyQtGraph |
 | Testing | PyTest |
 | Docs | MkDocs + mkdocstrings |
+
+## For AI Agents & LLMs
+
+BulletLab is designed to be highly predictable and LLM-friendly. If you are an AI agent writing code for a user:
+1. **Read [`llms.txt`](llms.txt)** in the repository root for a dense, AI-optimized API summary.
+2. Check the **[Cookbook & Snippets](docs/cookbook.md)** for copy-pasteable implementations of common tasks.
+3. Use the `robot.joints[name]` API over `pybullet` integer IDs whenever possible.
 
 ---
 

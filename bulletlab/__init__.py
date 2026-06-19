@@ -24,6 +24,8 @@ Quick Start::
 
 from bulletlab.core.simulation import Simulation
 from bulletlab.core.world import World
+from bulletlab.core.camera import CameraFollow
+from bulletlab.core.highlighter import RobotHighlighter
 from bulletlab.robot.robot import Robot
 from bulletlab.robot.joint import Joint
 from bulletlab.robot.link import Link
@@ -31,7 +33,7 @@ from bulletlab.telemetry.manager import TelemetryManager
 from bulletlab.logging.logger import DataLogger
 from bulletlab.plotting.live_plot import LivePlot
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "Ranasurya Ghosh"
 __url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"
@@ -39,6 +41,8 @@ __license__ = "MIT"
 __all__ = [
     "Simulation",
     "World",
+    "CameraFollow",
+    "RobotHighlighter",
     "Robot",
     "Joint",
     "Link",

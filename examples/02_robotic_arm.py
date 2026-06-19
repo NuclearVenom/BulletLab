@@ -8,6 +8,7 @@ What this shows:
 - Loading the Kuka iiwa arm from pybullet_data
 - Individual joint position control
 - Reading joint limits and building dynamic UI sliders
+- Joint/link highlighting on hover (RobotHighlighter)
 - Monitoring joint state in real-time
 
 Run::
@@ -21,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bulletlab import Simulation, Robot
+from bulletlab import Simulation, Robot, RobotHighlighter
 from bulletlab.core.world import World
 from bulletlab.telemetry import TelemetryManager
 from bulletlab.utils.urdf_utils import find_urdf
@@ -60,6 +61,11 @@ def main() -> None:
     )
     print(f"Loaded: {robot}")
 
+    # ──────────────────────────────────────────────
+    # Hover highlighting
+    # ──────────────────────────────────────────────
+    hl = RobotHighlighter(robot, sim)
+
     controllable = robot.controllable_joints
     print(f"Controllable joints ({len(controllable)}):")
     for j in controllable:
@@ -95,9 +101,9 @@ def main() -> None:
     ui = None
     try:
         from bulletlab.ui import BulletLabUI
-        import bulletlab.ui.widgets as ui_widgets
+        import imgui
 
-        ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry)
+        ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry, highlighter=hl)
         ui.start()
 
         # Custom panel: arm joint sliders
@@ -110,13 +116,17 @@ def main() -> None:
                 lo2 = lo if lo != 0 or hi != 0 else -math.pi
                 hi2 = hi if lo != 0 or hi != 0 else math.pi
 
-                new_pos = ui_widgets.slider(
-                    f"{joint.name}",
-                    lambda j=joint: j.position,
+                changed, new_val = imgui.slider_float(
+                    f"{joint.name}##arm_{joint.index}",
+                    joint.position,
                     lo2, hi2,
-                    setter=lambda v, j=joint: j.set_position(v),
                 )
-                target_positions[joint.name] = new_pos
+                # Highlight this joint's 3D link when its slider is hovered
+                if imgui.is_item_hovered():
+                    hl.set_hover(joint)
+                if changed:
+                    joint.set_position(float(new_val))
+                    target_positions[joint.name] = new_val
 
         print("BulletLab arm control window opened.\n")
     except Exception as exc:
@@ -131,7 +141,7 @@ def main() -> None:
     period = 480  # 2 seconds per motion cycle
 
     try:
-        while True:
+        while sim.is_connected:
             if ui is None:
                 # Automated sinusoidal joint motion for headless mode
                 t = step / 240.0

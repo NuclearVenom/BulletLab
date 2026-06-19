@@ -179,7 +179,7 @@ def main() -> None:
     step = 0
 
     try:
-        while True:
+        while sim.is_connected:
             sim.step()
             telemetry.update(t=sim.elapsed_time)
             logger.step(t=sim.elapsed_time)

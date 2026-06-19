@@ -37,6 +37,7 @@ import pybullet as p
 from bulletlab.robot.joint import Joint, JointType
 from bulletlab.robot.link import Link
 from bulletlab.utils.math_utils import quaternion_to_euler
+from bulletlab.utils.silencer import SuppressOutput
 
 if TYPE_CHECKING:
     from bulletlab.core.simulation import Simulation
@@ -132,34 +133,35 @@ class Robot:
         path_obj = Path(path_str)
         ext = path_obj.suffix.lower()
 
-        if ext in (".urdf",):
-            body_id = p.loadURDF(
-                path_str,
-                basePosition=list(position),
-                baseOrientation=list(orientation),
-                useFixedBase=fixed_base,
-                globalScaling=scale,
-                flags=flags,
-                physicsClientId=sim.client_id,
-            )
-        elif ext in (".xml", ".mjcf"):
-            # MJCF: position/orientation not directly supported at load time
-            body_ids = p.loadMJCF(
-                path_str,
-                physicsClientId=sim.client_id,
-            )
-            body_id = body_ids[0] if isinstance(body_ids, (list, tuple)) else body_ids
-        else:
-            # Try URDF by default
-            body_id = p.loadURDF(
-                path_str,
-                basePosition=list(position),
-                baseOrientation=list(orientation),
-                useFixedBase=fixed_base,
-                globalScaling=scale,
-                flags=flags,
-                physicsClientId=sim.client_id,
-            )
+        with SuppressOutput():
+            if ext in (".urdf",):
+                body_id = p.loadURDF(
+                    path_str,
+                    basePosition=list(position),
+                    baseOrientation=list(orientation),
+                    useFixedBase=fixed_base,
+                    globalScaling=scale,
+                    flags=flags,
+                    physicsClientId=sim.client_id,
+                )
+            elif ext in (".xml", ".mjcf"):
+                # MJCF: position/orientation not directly supported at load time
+                body_ids = p.loadMJCF(
+                    path_str,
+                    physicsClientId=sim.client_id,
+                )
+                body_id = body_ids[0] if isinstance(body_ids, (list, tuple)) else body_ids
+            else:
+                # Try URDF by default
+                body_id = p.loadURDF(
+                    path_str,
+                    basePosition=list(position),
+                    baseOrientation=list(orientation),
+                    useFixedBase=fixed_base,
+                    globalScaling=scale,
+                    flags=flags,
+                    physicsClientId=sim.client_id,
+                )
 
         robot = cls(
             body_id=body_id,

@@ -262,7 +262,7 @@ def main():
     print("  Simulation running. Close the BulletLab window to exit.\n")
 
     step = 0
-    while not app.should_close:
+    while sim.is_connected and not app.should_close:
         apply_targets(robot, mode)
         sim.step()
 

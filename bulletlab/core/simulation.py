@@ -28,6 +28,8 @@ from typing import TYPE_CHECKING, Optional
 import pybullet as p
 import pybullet_data
 
+from bulletlab.utils.silencer import SuppressOutput
+
 if TYPE_CHECKING:
     from bulletlab.robot.robot import Robot
 
@@ -82,6 +84,21 @@ class Simulation:
         self._robots: list["Robot"] = []
         self._connected: bool = False
 
+    @property
+    def is_connected(self) -> bool:
+        """``True`` if connected to the PyBullet physics server and the window is open."""
+        if not self._connected or self._client_id < 0:
+            return False
+        try:
+            info = p.getConnectionInfo(physicsClientId=self._client_id)
+            connected = info.get("isConnected", 0) == 1
+            if not connected:
+                self._connected = False
+            return connected
+        except Exception:  # includes pybullet.error
+            self._connected = False
+            return False
+
     # ------------------------------------------------------------------
     # Connection lifecycle
     # ------------------------------------------------------------------
@@ -96,13 +113,14 @@ class Simulation:
 
             sim = Simulation().start()
         """
-        if self._connected:
+        if self.is_connected:
             return self
 
-        self._client_id = p.connect(self._mode)
-        p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self._client_id)
-        p.setGravity(*self._gravity, physicsClientId=self._client_id)
-        p.setTimeStep(self._timestep, physicsClientId=self._client_id)
+        with SuppressOutput():
+            self._client_id = p.connect(self._mode)
+            p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self._client_id)
+            p.setGravity(*self._gravity, physicsClientId=self._client_id)
+            p.setTimeStep(self._timestep, physicsClientId=self._client_id)
 
         if self._mode == p.GUI:
             if self._hide_gui:
@@ -127,7 +145,8 @@ class Simulation:
         """
         if self._connected:
             try:
-                p.disconnect(physicsClientId=self._client_id)
+                with SuppressOutput():
+                    p.disconnect(physicsClientId=self._client_id)
             except Exception:
                 pass
             self._connected = False
@@ -147,7 +166,7 @@ class Simulation:
 
             sim.reset()
         """
-        if not self._connected:
+        if not self.is_connected:
             return
         p.resetSimulation(physicsClientId=self._client_id)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self._client_id)
@@ -171,10 +190,14 @@ class Simulation:
             for _ in range(1000):
                 sim.step()
         """
-        if not self._connected or self._paused:
+        if not self.is_connected or self._paused:
             return
-        p.stepSimulation(physicsClientId=self._client_id)
-        self._step_count += 1
+        try:
+            p.stepSimulation(physicsClientId=self._client_id)
+            self._step_count += 1
+        except Exception:
+            # Physics server closed externally (e.g. user closed the PyBullet window)
+            self._connected = False
 
     def pause(self) -> None:
         """Pause the simulation. Calls to :meth:`step` are no-ops while paused.

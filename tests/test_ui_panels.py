@@ -115,10 +115,26 @@ class TestConsolePanel:
         panel.execute("x = 42")
         assert ns.get("x") == 42
 
+    def test_execute_captures_multiline_output(self):
+        from bulletlab.ui.panels.console import ConsolePanel
+        panel = ConsolePanel(namespace={})
+        panel.execute("for value in range(2):\n    print(value)")
+        history = "\n".join(panel._history)
+        assert "    0" in history
+        assert "    1" in history
+
     def test_execute_error_does_not_raise(self):
         from bulletlab.ui.panels.console import ConsolePanel
         panel = ConsolePanel(namespace={})
         panel.execute("raise ValueError('test error')")  # should not propagate
+
+    def test_statement_error_does_not_show_eval_probe_error(self):
+        from bulletlab.ui.panels.console import ConsolePanel
+        panel = ConsolePanel(namespace={})
+        panel.execute("missing['key'] = 1")
+        history = "\n".join(panel._history)
+        assert "NameError" in history
+        assert "During handling of the above exception" not in history
 
     def test_log_appends_message(self):
         from bulletlab.ui.panels.console import ConsolePanel
@@ -140,6 +156,116 @@ class TestConsolePanel:
         panel = ConsolePanel()
         panel.render()  # should not raise
         con_mod._HAS_IMGUI = orig
+
+    @pytest.mark.parametrize("submit_with_enter", [False, True])
+    def test_render_submits_input(self, monkeypatch, submit_with_enter):
+        from bulletlab.ui.panels import console as con_mod
+        from bulletlab.ui.panels.console import ConsolePanel
+
+        class FakeImgui:
+            INPUT_TEXT_ENTER_RETURNS_TRUE = 1
+
+            def __init__(self):
+                self.focus_calls = 0
+
+            def __getattr__(self, name):
+                if name == "get_content_region_available":
+                    return lambda: (300, 300)
+                if name == "input_text":
+                    return lambda *args, **kwargs: (submit_with_enter, "x = 42")
+                if name == "button":
+                    return lambda label, *args, **kwargs: (
+                        label.startswith("Run##") and not submit_with_enter
+                    )
+                if name == "set_keyboard_focus_here":
+                    return self._set_focus
+                return lambda *args, **kwargs: None
+
+            def _set_focus(self):
+                self.focus_calls += 1
+
+        fake_imgui = FakeImgui()
+        monkeypatch.setattr(con_mod, "imgui", fake_imgui)
+        monkeypatch.setattr(con_mod, "_HAS_IMGUI", True)
+
+        namespace = {}
+        panel = ConsolePanel(namespace=namespace)
+        panel.render()
+
+        assert namespace["x"] == 42
+        assert panel._input_buf == [""]
+        assert panel._focus_input is True
+        assert fake_imgui.focus_calls == 1
+
+    def test_expanded_console_runs_multiline_and_resizes_output(self, monkeypatch):
+        from bulletlab.ui.panels import console as con_mod
+        from bulletlab.ui.panels.console import ConsolePanel
+
+        class FakeImgui:
+            INPUT_TEXT_ALLOW_TAB_INPUT = 2
+
+            def __getattr__(self, name):
+                if name == "get_content_region_available":
+                    return lambda: (600, 500)
+                if name == "input_text_multiline":
+                    return lambda *args, **kwargs: (
+                        True,
+                        "for value in range(3):\n    total = value",
+                    )
+                if name == "button":
+                    return lambda label, *args, **kwargs: label.startswith("Run Code")
+                if name == "is_item_active":
+                    return lambda: True
+                if name == "get_io":
+                    return lambda: type("IO", (), {"mouse_delta": (0, 25)})()
+                return lambda *args, **kwargs: None
+
+        monkeypatch.setattr(con_mod, "imgui", FakeImgui())
+        monkeypatch.setattr(con_mod, "_HAS_IMGUI", True)
+
+        namespace = {}
+        panel = ConsolePanel(namespace=namespace)
+        panel._expanded = True
+        panel.render_expanded()
+
+        assert namespace["total"] == 2
+        assert panel._input_buf == [""]
+        assert panel._expanded_output_height == 285.0
+
+    def test_expand_button_hidden_while_console_is_expanded(self, monkeypatch):
+        from bulletlab.ui.panels import console as con_mod
+        from bulletlab.ui.panels.console import ConsolePanel
+
+        button_labels = []
+
+        class FakeImgui:
+            INPUT_TEXT_ENTER_RETURNS_TRUE = 1
+
+            def button(self, label, *args, **kwargs):
+                button_labels.append(label)
+                return False
+
+            def text_disabled(self, *args, **kwargs):
+                pass
+
+            def __getattr__(self, name):
+                if name == "get_content_region_available":
+                    return lambda: (300, 300)
+                if name == "input_text":
+                    return lambda *args, **kwargs: (False, "")
+                return lambda *args, **kwargs: None
+
+        monkeypatch.setattr(con_mod, "imgui", FakeImgui())
+        monkeypatch.setattr(con_mod, "_HAS_IMGUI", True)
+
+        panel = ConsolePanel()
+        panel._expanded = True
+        panel.render()
+        assert not any(label.startswith("Expand") for label in button_labels)
+
+        panel.collapse()
+        panel.render()
+        assert any(label.startswith("Expand") for label in button_labels)
 
 
 class TestPlotsPanel:
@@ -243,3 +369,89 @@ class TestBulletLabUIConstruction:
         from bulletlab.ui.app import BulletLabUI
         app = BulletLabUI(sim=sim)
         assert not app.should_close
+
+    def test_expanded_console_uses_separate_glfw_window(self, sim, monkeypatch):
+        from bulletlab.ui import app as app_mod
+        from bulletlab.ui.app import BulletLabUI
+
+        main_window = object()
+        console_window = object()
+        main_context = object()
+        console_context = object()
+        created_windows = []
+        destroyed_windows = []
+        current_contexts = []
+        renderer_contexts = []
+
+        class FakeGlfw:
+            @staticmethod
+            def create_window(width, height, title, monitor, share):
+                created_windows.append((width, height, title, monitor, share))
+                return console_window
+
+            @staticmethod
+            def get_window_pos(window):
+                return (10, 20)
+
+            @staticmethod
+            def set_window_pos(*args):
+                pass
+
+            @staticmethod
+            def make_context_current(*args):
+                pass
+
+            @staticmethod
+            def swap_interval(*args):
+                pass
+
+            @staticmethod
+            def set_char_callback(*args):
+                pass
+
+            @staticmethod
+            def destroy_window(window):
+                destroyed_windows.append(window)
+
+        class FakeImgui:
+            @staticmethod
+            def create_context():
+                return console_context
+
+            @staticmethod
+            def set_current_context(context):
+                current_contexts.append(context)
+
+            @staticmethod
+            def destroy_context(*args):
+                pass
+
+        renderer = type("Renderer", (), {"shutdown": lambda self: None})()
+
+        def create_renderer(window):
+            renderer_contexts.append(current_contexts[-1])
+            return renderer
+
+        fake_backend = type(
+            "Backend",
+            (),
+            {"GlfwRenderer": staticmethod(create_renderer)},
+        )
+
+        monkeypatch.setattr(app_mod, "glfw", FakeGlfw)
+        monkeypatch.setattr(app_mod, "imgui", FakeImgui)
+        monkeypatch.setattr(app_mod, "imgui_glfw", fake_backend)
+
+        app = BulletLabUI(sim=sim)
+        app._window = main_window
+        app._imgui_context = main_context
+        monkeypatch.setattr(app, "_apply_style", lambda: None)
+
+        assert app._open_console_window()
+        assert created_windows == [(900, 650, "BulletLab Console", None, main_window)]
+        assert app._console_window is console_window
+        assert renderer_contexts == [console_context]
+
+        app._close_console_window()
+        assert destroyed_windows == [console_window]
+        assert app._console_window is None

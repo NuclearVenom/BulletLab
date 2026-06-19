@@ -48,8 +48,9 @@ class PropertiesPanel:
         props.render()
     """
 
-    def __init__(self) -> None:
+    def __init__(self, highlighter: Any | None = None) -> None:
         self._target: Any = None
+        self._highlighter = highlighter
 
     def set_target(self, obj: Any) -> None:
         """Set the object whose properties will be displayed.
@@ -90,6 +91,11 @@ class PropertiesPanel:
             self._render_link(self._target)
         else:
             imgui.text(str(self._target))
+
+    def _check_hover(self, obj: Any) -> None:
+        """Call after any widget — highlights *obj* in the 3D view if hovered."""
+        if self._highlighter is not None and imgui.is_item_hovered():
+            self._highlighter.set_hover(obj)
 
     # ------------------------------------------------------------------
     # Simulation properties
@@ -171,6 +177,7 @@ class PropertiesPanel:
         changed_mf, new_mf = imgui.drag_float(
             "Max Force##jnt_mf", joint.max_force, 1.0, 0.0, 5000.0
         )
+        self._check_hover(joint)
         if changed_mf:
             joint.max_force = float(new_mf)
 
@@ -178,6 +185,7 @@ class PropertiesPanel:
         changed_mv, new_mv = imgui.drag_float(
             "Max Velocity##jnt_mv", joint.max_velocity, 0.1, 0.0, 200.0
         )
+        self._check_hover(joint)
         if changed_mv:
             joint.max_velocity = float(new_mv)
 
@@ -187,6 +195,7 @@ class PropertiesPanel:
         changed_vel, new_vel = imgui.drag_float(
             "Target Velocity##jnt_vel", joint.velocity, 0.1, -200.0, 200.0
         )
+        self._check_hover(joint)
         if changed_vel:
             joint.velocity = float(new_vel)
 
@@ -197,19 +206,23 @@ class PropertiesPanel:
         changed_pos, new_pos = imgui.slider_float(
             "Target Position##jnt_pos", joint.position, range_lo, range_hi
         )
+        self._check_hover(joint)
         if changed_pos:
             joint.set_position(float(new_pos))
 
         imgui.separator()
         if imgui.button("Reset Joint##jnt_reset"):
             joint.reset()
+        self._check_hover(joint)
         imgui.same_line()
         if joint.is_enabled:
             if imgui.button("Disable##jnt_disable"):
                 joint.disable()
+            self._check_hover(joint)
         else:
             if imgui.button("Enable##jnt_enable"):
                 joint.enable()
+            self._check_hover(joint)
 
     # ------------------------------------------------------------------
     # Link properties
@@ -224,6 +237,7 @@ class PropertiesPanel:
         changed_mass, new_mass = imgui.drag_float(
             "Mass (kg)##lnk_mass", link.mass, 0.01, 0.0001, 1000.0
         )
+        self._check_hover(link)
         if changed_mass:
             link.mass = float(new_mass)
 
@@ -231,6 +245,7 @@ class PropertiesPanel:
         changed_fric, new_fric = imgui.drag_float(
             "Lateral Friction##lnk_fric", link.friction, 0.01, 0.0, 10.0
         )
+        self._check_hover(link)
         if changed_fric:
             link.friction = float(new_fric)
 
@@ -238,6 +253,7 @@ class PropertiesPanel:
         changed_rest, new_rest = imgui.slider_float(
             "Restitution##lnk_rest", link.restitution, 0.0, 1.0
         )
+        self._check_hover(link)
         if changed_rest:
             link.restitution = float(new_rest)
 
@@ -245,6 +261,7 @@ class PropertiesPanel:
         changed_ld, new_ld = imgui.drag_float(
             "Linear Damping##lnk_ld", link.linear_damping, 0.001, 0.0, 10.0
         )
+        self._check_hover(link)
         if changed_ld:
             link.linear_damping = float(new_ld)
 
@@ -252,6 +269,7 @@ class PropertiesPanel:
         changed_ad, new_ad = imgui.drag_float(
             "Angular Damping##lnk_ad", link.angular_damping, 0.001, 0.0, 10.0
         )
+        self._check_hover(link)
         if changed_ad:
             link.angular_damping = float(new_ad)
 

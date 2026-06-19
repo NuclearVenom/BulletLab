@@ -1,6 +1,19 @@
 """
-Example 06 — Husky Rover on Irregular Terrain
-Driven via the ImGui control panel.
+Example 06: Husky Rover on Irregular Terrain
+=============================================
+Demonstrates rover navigation over procedurally generated terrain with
+real-time throttle and steering control via an ImGui control panel.
+
+What this shows:
+- Procedural heightfield terrain using multi-octave sine noise
+- Scattering static rock/box obstacles across the environment
+- Loading the Husky rover and driving it with differential steering
+- Real-time throttle, steering, and max-speed control via UI sliders
+- Live telemetry (speed, roll, pitch, position)
+
+Run::
+
+    python examples/06_irregular_terrain.py
 """
 
 import math
@@ -201,7 +214,7 @@ app.start()
 # 8. Main loop
 # ─────────────────────────────────────────────────────────────────────────────
 step = 0
-while not app.should_close:
+while sim.is_connected and not app.should_close:
     apply_drive()
     sim.step()
     step += 1

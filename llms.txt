@@ -1,0 +1,67 @@
+# BulletLab - AI/LLM Context
+
+BulletLab is a high-level, object-oriented Python wrapper for the PyBullet physics engine. It is designed to make robotics experimentation, simulation, and reinforcement learning (RL) easier by replacing PyBullet's low-level integer-ID-based API with intuitive Python objects. It also provides a modern, two-window architecture: one window for the PyBullet 3D simulation and a separate ImGui window for interactive controls, telemetry, and live plotting.
+
+## Key Concepts
+
+*   **Simulation**: `bulletlab.Simulation` manages the PyBullet connection, stepping, and configuration.
+*   **Robot**: `bulletlab.Robot` represents a loaded URDF/MJCF file. It provides dictionary-like access to joints (`robot.joints`) and links (`robot.links`).
+*   **Joint**: `bulletlab.Joint` allows reading state (position, velocity, effort) and setting targets (`joint.position = 1.0`, `joint.velocity = 5.0`).
+*   **Link**: `bulletlab.Link` provides read-only access to link state (position, orientation, velocity).
+*   **Telemetry**: `bulletlab.TelemetryManager` tracks variables over time.
+*   **UI**: `bulletlab.ui.BulletLabUI` provides an ImGui-based control panel.
+
+## Core API Usage
+
+### Initialization and Loading
+```python
+from bulletlab import Simulation, Robot
+from bulletlab.core.world import World
+
+sim = Simulation(mode="gui", gravity=(0, 0, -9.81)).start()
+world = World(sim)
+world.load_plane()
+
+robot = Robot.load("husky/husky.urdf", sim=sim, position=(0, 0, 0.2))
+```
+
+### Motor Control
+Instead of `p.setJointMotorControl2(id, joint_index, p.VELOCITY_CONTROL, targetVelocity=15)`, use:
+```python
+robot.joints['front_left_wheel'].velocity = 15.0
+robot.joints['front_right_wheel'].velocity = 15.0
+```
+
+### Position Control
+```python
+robot.joints['arm_joint'].position = 1.57 # radians
+```
+
+### Reading State
+```python
+pos = robot.base_position
+vel = robot.joints['motor'].current_velocity
+link_pos = robot.links['gripper'].position
+```
+
+### Telemetry and UI
+```python
+from bulletlab.telemetry import TelemetryManager
+from bulletlab.ui import BulletLabUI
+
+telemetry = TelemetryManager()
+telemetry.watch("speed", lambda: robot.speed, unit="m/s")
+
+ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry)
+ui.start()
+
+while sim.is_connected and not ui.should_close:
+    sim.step()
+    telemetry.update(t=sim.elapsed_time)
+    ui.step()
+```
+
+## Best Practices for LLMs
+*   Always use the `robot.joints[name]` API for motor control instead of raw `pybullet` commands.
+*   Always check `sim.is_connected` in the main loop to handle graceful window closures.
+*   Use `bulletlab.ui.BulletLabUI` to instantly provide a user interface for any simulation script.

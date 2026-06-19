@@ -53,11 +53,13 @@ class ExplorerPanel:
         sim: "Simulation",
         robots: list["Robot"] | None = None,
         on_select: Callable[[Any], None] | None = None,
+        highlighter: Any | None = None,
     ) -> None:
         self._sim = sim
         self._robots: list["Robot"] = robots or []
         self._on_select = on_select
         self._selected: Any = None
+        self._highlighter = highlighter
 
     # ------------------------------------------------------------------
     # Public API
@@ -118,6 +120,9 @@ class ExplorerPanel:
                     )[0]
                     if clicked:
                         self._select(joint)
+                    # Highlight the 3D link when mouse hovers over this row
+                    if self._highlighter is not None and imgui.is_item_hovered():
+                        self._highlighter.set_hover(joint)
                 imgui.tree_pop()
 
             # Links subtree
@@ -130,6 +135,9 @@ class ExplorerPanel:
                     )[0]
                     if clicked:
                         self._select(link)
+                    # Highlight the 3D link when mouse hovers over this row
+                    if self._highlighter is not None and imgui.is_item_hovered():
+                        self._highlighter.set_hover(link)
                 imgui.tree_pop()
 
             imgui.tree_pop()
