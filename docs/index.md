@@ -1,5 +1,5 @@
 <h1>
-  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/docs/assets/logo.png" width="80" align="top" alt="[logo]"> 
+  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/docs/assets/logo.png" width="80" align="center" alt="[logo]"> 
   <span class="hero-title">
   BulletLab 
   </span>
@@ -16,7 +16,7 @@ BulletLab provides a high-level object-oriented interface to [PyBullet](https://
 
 ## Why BulletLab?
 
-| Without BulletLab | With BulletLab |
+| <h3>Without BulletLab</h3> | <h3>With BulletLab</h3> |
 |---|---|
 | `p.setJointMotorControl2(robot_id, i, p.VELOCITY_CONTROL, ...)` | `robot.joints["motor"].velocity = 15` |
 | `p.changeDynamics(robot_id, i, mass=5)` | `robot.links["wheel"].mass = 5` |

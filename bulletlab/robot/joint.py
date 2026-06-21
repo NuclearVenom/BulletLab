@@ -148,6 +148,14 @@ class Joint:
         )
         return float(state[0])
 
+    @position.setter
+    def position(self, target: float) -> None:
+        """Apply position control to move the joint to a target angle/displacement.
+
+        This is a convenience alias for :meth:`set_position` using the default max force.
+        """
+        self.set_position(target)
+
     @property
     def velocity(self) -> float:
         """Current joint velocity (rad/s or m/s).

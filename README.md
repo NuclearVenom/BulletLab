@@ -57,9 +57,15 @@ These windows communicate through Python objects. BulletLab does **not** attempt
 
 ### Installation
 
+**Install from PyPI**
 ```bash
 pip install bulletlab
-# or from source:
+```
+
+**Developer Installation**
+```bash
+git clone https://github.com/NuclearVenom/BulletLab.git
+cd BulletLab
 pip install -e .
 ```
 
