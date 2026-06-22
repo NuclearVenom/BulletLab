@@ -1,12 +1,13 @@
+<div><span class="hero-section">
 <h1>
-  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/docs/assets/logo.png" width="80" align="center" alt="[logo]"> 
+  <img src="https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/docs/assets/logo.png" width="80" align="bottom" alt="[logo]"> 
   <span class="hero-title">
   BulletLab 
   </span>
 </h1>
 
-<div>Developed  by  <span class="author-name">Ranasurya Ghosh</span></div>
-
+<div>Developed  by  <a href="https://www.linkedin.com/in/ranasuryaghosh/" target="_blank" class="author-name">Ranasurya Ghosh</a></div>
+</span></div>
 
 ---
 

@@ -203,9 +203,18 @@ class PropertiesPanel:
         lo2, hi2 = joint.limits
         range_lo = lo2 if lo2 != 0.0 or hi2 != 0.0 else -6.28
         range_hi = hi2 if lo2 != 0.0 or hi2 != 0.0 else 6.28
+        
+        if joint.is_pinned:
+            imgui.push_style_color(imgui.COLOR_SLIDER_GRAB, 0.9, 0.2, 0.2, 1.0)
+            imgui.push_style_color(imgui.COLOR_SLIDER_GRAB_ACTIVE, 1.0, 0.3, 0.3, 1.0)
+            
         changed_pos, new_pos = imgui.slider_float(
             "Target Position##jnt_pos", joint.position, range_lo, range_hi
         )
+        
+        if joint.is_pinned:
+            imgui.pop_style_color(2)
+            
         self._check_hover(joint)
         if changed_pos:
             joint.set_position(float(new_pos))

@@ -14,44 +14,76 @@
    Headings
    ------------------------------------------------------- */
 
+.hero-section {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
 .hero-title {
     font-family: "Unbounded", sans-serif;
-    font-size: 5rem;
+    font-size: 4.6rem;
     font-weight: 700;
-    color: white;
+    color: #000000;
     text-transform: uppercase;
-    margin: 0 !important;
     padding: 0 !important;
     line-height: 1.0;
 }
 
-.author-name {
-    font-family: "Iceberg", sans-serif;
-    color: #04d9ff;
-    font-size: 1.2rem;
+[data-md-color-scheme="slate"] .hero-title {
+    color: #ffffff;
+}
 
+.author-name,
+.author-name:visited,
+.author-name:active {
+    font-family: "Iceberg", sans-serif;
+    color: #04d9ff !important;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+}
+
+.author-name:hover {
+    color: #80f5ff !important;
+    text-shadow: 0 0 8px rgba(4, 217, 255, 0.6);
+}
+
+h1 {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+h1 img {
+    margin: 0;
+    vertical-align: middle;
 }
 
 .md-content h1 {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0px;
     font-size: 3rem;
     font-weight: 700;
-    color: #ffffff;
 }
 
 .md-content h2 {
     font-size: 2.2rem;
     font-weight: 600;
-    color: #ffffff;
 }
 
 .md-content h3 {
     font-size: 1.6rem;
     font-weight: 600;
-    color: #ffffff;
 }
 
-.md-content h4 {
-    color: #ffffff;
+.md-content h4 {}
+
+[dir=ltr] .md-header__title {
+    margin-left: 0rem;
 }
 
 /* -------------------------------------------------------
@@ -59,33 +91,23 @@
    ------------------------------------------------------- */
 
 .md-typeset {
-    color: #f2f2f2;
     font-size: 0.95rem;
 }
 
-.md-content {
-    color: #f2f2f2;
-}
+.md-content {}
 
 /* -------------------------------------------------------
    Navigation Sidebar
    ------------------------------------------------------- */
 
-.md-nav {
-    color: #f2f2f2;
-}
+.md-nav {}
 
-.md-nav__link {
-    color: #f2f2f2;
-}
+.md-nav__link {}
 
-.md-nav__link:hover {
-    color: #ffffff;
-}
+.md-nav__link:hover {}
 
 /* Active page */
 .md-nav__link--active {
-    color: #4fc3f7 !important;
     font-weight: 600;
 }
 
@@ -94,7 +116,6 @@
    ------------------------------------------------------- */
 
 .md-typeset table {
-    color: #f2f2f2;
     font-size: 0.95rem;
 }
 
@@ -135,9 +156,7 @@
    ------------------------------------------------------- */
 
 .md-typeset h5,
-.md-typeset h6 {
-    color: #ffffff;
-}
+.md-typeset h6 {}
 
 /* -------------------------------------------------------
    Slightly wider content area

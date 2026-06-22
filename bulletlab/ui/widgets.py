@@ -121,6 +121,7 @@ def slider(
     max_val: float,
     setter: Callable[[float], None] | None = None,
     fmt: str = "%.3f",
+    highlight: bool = False,
 ) -> float:
     """Render a float slider.
 
@@ -143,7 +144,16 @@ def slider(
     if not _check_imgui():
         return 0.0
     current = float(getter()) if callable(getter) else float(getter)
+    
+    if highlight:
+        imgui.push_style_color(imgui.COLOR_SLIDER_GRAB, 0.9, 0.2, 0.2, 1.0)
+        imgui.push_style_color(imgui.COLOR_SLIDER_GRAB_ACTIVE, 1.0, 0.3, 0.3, 1.0)
+        
     changed, new_val = imgui.slider_float(label, current, min_val, max_val, fmt)
+    
+    if highlight:
+        imgui.pop_style_color(2)
+        
     if changed and setter is not None:
         setter(float(new_val))
     return float(new_val) if changed else current
