@@ -19,7 +19,7 @@ from bulletlab.ui import widgets as ui
 # ─────────────────────────────────────────────────────────────────────────────
 # Config — edit these or pass via command line
 # ─────────────────────────────────────────────────────────────────────────────
-URDF_PATH  = sys.argv[1] if len(sys.argv) > 1 else "C:\\Users\\ranas\\Desktop\\BulletLab_test\\g1_description\\urdf\\g1_29dof.urdf"
+URDF_PATH  = sys.argv[1] if len(sys.argv) > 1 else ""
 FIXED_BASE = "--fixed" in sys.argv
 SPAWN_POS  = (0, 0, 0.791)
 
