@@ -26,6 +26,39 @@ robot = Robot.load(
 )
 ```
 
+### Loading with a Custom Tilt
+
+Use the `tilt` parameter for an easy axis-angle shorthand — no quaternion maths required.
+Pass `tilt=((ax, ay, az), angle_deg)` and BulletLab handles the rest.
+
+```python
+# Tilt 30° around the Y axis (nose-down / forward lean)
+robot = Robot.load("laikago/laikago.urdf", sim=sim, tilt=((0, 1, 0), 30))
+
+# Tilt 45° around the X axis (lean left / roll)
+robot = Robot.load("laikago/laikago.urdf", sim=sim, tilt=((1, 0, 0), 45))
+
+# Diagonal axis — automatically normalised
+robot = Robot.load("laikago/laikago.urdf", sim=sim, tilt=((1, 1, 0), 60))
+
+# Combine tilt with an explicit heading orientation
+import pybullet as p, math
+heading = p.getQuaternionFromEuler([0, 0, math.radians(90)])  # face East
+robot = Robot.load("laikago/laikago.urdf", sim=sim,
+                   orientation=heading, tilt=((0, 1, 0), 15))
+```
+
+| Axis | Effect |
+|------|--------|
+| `(1, 0, 0)` | Roll — lean left / right |
+| `(0, 1, 0)` | Pitch — nose up / down |
+| `(0, 0, 1)` | Yaw — spin on the spot |
+| any direction | Normalised automatically |
+
+The angle is always in **degrees**. When both `orientation` and `tilt` are given, the tilt
+is applied *on top of* the base orientation (quaternion composition).
+
+
 ## Accessing Joints
 
 Joints are accessible by name via `robot.joints`:
@@ -141,4 +174,65 @@ path = find_urdf("kuka_iiwa/model.urdf")
 # List all available URDFs in pybullet_data
 for urdf in list_available_urdfs():
     print(urdf)
+```
+
+## Applying External Forces & Torques
+
+Use `robot.apply_force()` and `robot.apply_torque()` to push/spin the robot from outside
+without needing `import pybullet as p`.
+
+> **Important:** PyBullet clears external forces after every `sim.step()` call.
+> Call `apply_force()` **inside your loop** every step for a continuous effect.
+
+```python
+# Upward thrust — simulate a drone motor every step
+while sim.is_connected:
+    robot.apply_force((0, 0, 20.0))   # 20 N upward (world frame)
+    sim.step()
+
+# Wind gust in world X direction
+robot.apply_force((5.0, 0, 0))
+
+# Apply force in the robot's own body frame
+robot.apply_force((0, 0, 10.0), frame="local")
+
+# Apply force to a specific link
+robot.apply_force((2.0, 0, 0), link="gripper")
+
+# Spin the base around the Z axis (world frame)
+robot.apply_torque((0, 0, 3.0))
+
+# Apply drag proportional to velocity (call every step)
+vel = robot.base_velocity
+robot.apply_force((-0.1 * vel[0], -0.1 * vel[1], -0.1 * vel[2]))
+```
+
+## Changing Physics Parameters
+
+`robot.set_dynamics()` wraps PyBullet's `changeDynamics` — call it any time to adjust
+mass, friction, restitution, and damping without touching raw PyBullet.
+
+```python
+# Change body mass at runtime
+robot.set_dynamics(mass=5.0)            # base link
+
+# Make wheels grippier
+robot.set_dynamics("wheel_fl", lateral_friction=1.5)
+robot.set_dynamics("wheel_fr", lateral_friction=1.5)
+
+# Add bounciness to an end-effector
+robot.set_dynamics("gripper", restitution=0.6)
+
+# Reduce linear/angular damping for a drone-like feel
+robot.set_dynamics(linear_damping=0.0, angular_damping=0.0)
+
+# Multiple parameters at once
+robot.set_dynamics("chassis",
+                   mass=10.0,
+                   lateral_friction=0.5,
+                   restitution=0.1)
+
+# Apply same dynamics to every link
+for link_name in robot.links:
+    robot.set_dynamics(link_name, rolling_friction=0.01)
 ```

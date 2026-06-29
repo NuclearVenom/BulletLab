@@ -20,10 +20,6 @@ Run::
 import math
 import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import pybullet as p
 from bulletlab import Simulation, Robot
 from bulletlab.core.world import World
 from bulletlab.telemetry import TelemetryManager
@@ -186,7 +182,7 @@ def main() -> None:
             params["mass"] = ui_widgets.slider(
                 "Body Mass (kg)", lambda: params["mass"], 0.1, 10.0,
                 setter=lambda v: (params.update({"mass": v}),
-                                  setattr(robot.links["base_link"], "mass", v)),
+                                  robot.set_dynamics("base_link", mass=v)),
             )
             params["drag"] = ui_widgets.slider(
                 "Drag Coefficient", lambda: params["drag"], 0.0, 2.0,
@@ -217,31 +213,13 @@ def main() -> None:
 
     try:
         while True:
-            # Apply thrust via direct external force on base
-            thrust_per_rotor = params["thrust"] / max(len(rotor_joints), 1)
+            # Apply upward thrust force (world frame, at the robot's centre)
+            robot.apply_force((0, 0, params["thrust"]))
 
-            # Apply upward force at center of mass
-            body_id = robot.body_id
-            p.applyExternalForce(
-                body_id,
-                -1,  # base link
-                [0, 0, params["thrust"]],
-                [0, 0, 0],
-                p.LINK_FRAME,
-                physicsClientId=sim.client_id,
-            )
-
-            # Apply simple drag
+            # Apply simple drag (opposite to velocity, world frame)
             vel = robot.base_velocity
-            drag_force = [-params["drag"] * v for v in vel]
-            p.applyExternalForce(
-                body_id,
-                -1,
-                drag_force,
-                [0, 0, 0],
-                p.WORLD_FRAME,
-                physicsClientId=sim.client_id,
-            )
+            drag_force = tuple(-params["drag"] * v for v in vel)
+            robot.apply_force(drag_force)
 
             # Spin rotors
             for joint in rotor_joints:

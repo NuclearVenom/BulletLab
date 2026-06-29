@@ -12,7 +12,7 @@ Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Install BulletLab library:** `pip install bulletlab`<br><br>
-[Read Documentation](https://nuclearvenom.github.io/BulletLab/)
+[![Read Documentation](https://img.shields.io/badge/Read_The_Documentation-2094F3?style=for-the-badge)](https://nuclearvenom.github.io/BulletLab/)
 <br><br>
 
 ![BulletLab example UI](https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/assets/bulletlab_ui.png)
@@ -195,7 +195,32 @@ def my_panel():
 app.run()
 ```
 
+### Virtual Joystick
+
+Add an interactive 2D joystick to any custom panel for intuitive, gamepad-style robot control.
+
+```python
+@app.custom_panel("Drive")
+def drive_panel():
+    ui.joystick(
+        "Rover Drive",
+        on_y=lambda v: [setattr(robot.joints["wheel_left"],  "velocity", v * 10),
+                        setattr(robot.joints["wheel_right"], "velocity", v * 10)],
+        on_x=lambda v: [setattr(robot.joints["wheel_left"],  "velocity", -v * 5),
+                        setattr(robot.joints["wheel_right"], "velocity",  v * 5)],
+        snap=True,                       # Handle snaps to center on release
+        size=80,                         # Joystick circle radius (pixels)
+        handle_color=(0.2, 0.8, 0.4, 1.0),
+    )
+```
+
+- **`snap=True`** — robot stops when you release (default)
+- **`snap=False`** — handle latches; robot keeps driving at the last commanded speed
+- Drop multiple joysticks in the same panel (use `ui.same_line()` between them)
+- Each joystick can have its own color and size
+
 ---
+
 
 ## Supported Robot Types
 
@@ -235,6 +260,7 @@ robot.apply_action(action)     # → updates joints
 | `examples/03_self_balancing_robot.py` | PD controller for balance |
 | `examples/04_drone_parameter_tuning.py` | Thrust/mass parameter exploration |
 | `examples/05_generic_robot_inspector.py` | Load any URDF and inspect it |
+...and more
 
 Run any example:
 ```bash
@@ -245,11 +271,15 @@ python examples/01_differential_drive_rover.py
 
 ## Documentation
 
+The full documentation is available online at **[https://nuclearvenom.github.io/BulletLab/](https://nuclearvenom.github.io/BulletLab/)**
+
+### Building Locally (For Contributors)
+
+If you wish to edit or preview the documentation locally:
 ```bash
 pip install -e ".[dev]"
 mkdocs serve
 ```
-
 Then visit http://localhost:8000
 
 ---

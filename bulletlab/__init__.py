@@ -32,6 +32,11 @@ from bulletlab.robot.link import Link
 from bulletlab.telemetry.manager import TelemetryManager
 from bulletlab.logging.logger import DataLogger
 from bulletlab.plotting.live_plot import LivePlot
+from bulletlab.utils.math_utils import (
+    euler_to_quaternion,
+    quaternion_to_euler,
+    axis_angle_to_quaternion,
+)
 
 __version__ = "0.1.3"
 __author__ = "Ranasurya Ghosh"
@@ -49,4 +54,8 @@ __all__ = [
     "TelemetryManager",
     "DataLogger",
     "LivePlot",
+    # Math utilities
+    "euler_to_quaternion",
+    "quaternion_to_euler",
+    "axis_angle_to_quaternion",
 ]

@@ -18,7 +18,6 @@ Run::
 
 import math
 import numpy as np
-import pybullet as p
 
 from bulletlab import Simulation, Robot
 from bulletlab.core.world import World
@@ -30,11 +29,12 @@ from bulletlab.ui import widgets as ui
 # 1. Simulation
 # ─────────────────────────────────────────────────────────────────────────────
 sim = Simulation(mode="gui", gravity=(0, 0, -9.81), timestep=1/240).start()
-cid = sim.client_id
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. Irregular terrain via PyBullet heightfield
+# 2. Irregular terrain via World.load_heightfield()
 # ─────────────────────────────────────────────────────────────────────────────
+world = World(sim)
+
 TERRAIN_SIZE = 256
 np.random.seed(42)
 
@@ -46,53 +46,31 @@ def make_heightfield(n):
             for j in range(n):
                 h[i, j] += amp * math.sin(freq * i) * math.cos(freq * j)
     h += np.random.uniform(-0.15, 0.15, (n, n))  # fine grain noise
-    # Flatten a 6×6 square at the origin so the rover spawns cleanly
+    # Flatten a spawn-safe zone at the origin
     cx, cy = n // 2, n // 2
     h[cx-8:cx+8, cy-8:cy+8] = 0.0
-    return h.flatten().tolist()
+    return h
 
 heights = make_heightfield(TERRAIN_SIZE)
-scale   = 0.25   # height scale
 
-terrain_shape = p.createCollisionShape(
-    p.GEOM_HEIGHTFIELD,
-    meshScale       = [0.1, 0.1, scale],
-    heightfieldData = heights,
-    numHeightfieldRows    = TERRAIN_SIZE,
-    numHeightfieldColumns = TERRAIN_SIZE,
-    physicsClientId = cid,
-)
-terrain_body = p.createMultiBody(
-    baseCollisionShapeIndex = terrain_shape,
-    basePosition            = (0, 0, 0),
-    physicsClientId         = cid,
-)
-p.changeVisualShape(
-    terrain_body, -1,
-    rgbaColor = (0.55, 0.45, 0.35, 1.0),   # dirt colour
-    physicsClientId = cid,
+world.load_heightfield(
+    heights,
+    xy_scale=0.1,
+    z_scale=0.25,
+    color=(0.55, 0.45, 0.35, 1.0),
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. Scatter some rocks / ramps for extra obstacles
+# 3. Scatter rock/box obstacles via World.scatter_obstacles()
 # ─────────────────────────────────────────────────────────────────────────────
-rng = np.random.default_rng(7)
-for _ in range(30):
-    x, y  = rng.uniform(-10, 8, 2)
-    sz    = rng.uniform(0.2, 0.6, 3).tolist()
-    shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=sz, physicsClientId=cid)
-    vis   = p.createVisualShape(
-        p.GEOM_BOX, halfExtents=sz,
-        rgbaColor=(0.4, 0.4, 0.4, 1.0),
-        physicsClientId=cid,
-    )
-    p.createMultiBody(
-        baseMass                = 0,
-        baseCollisionShapeIndex = shape,
-        baseVisualShapeIndex    = vis,
-        basePosition            = [x, y, sz[2]],
-        physicsClientId         = cid,
-    )
+world.scatter_obstacles(
+    count=30,
+    kind="box",
+    size_range=(0.2, 0.6),
+    region=(-10.0, -10.0, 8.0, 8.0),
+    color=(0.4, 0.4, 0.4, 1.0),
+    seed=7,
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. Load Husky rover

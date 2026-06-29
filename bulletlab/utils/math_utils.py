@@ -6,10 +6,13 @@ and linear interpolation — all without external dependencies beyond NumPy.
 
 Example::
 
-    from bulletlab.utils.math_utils import quaternion_to_euler, euler_to_quaternion
+    from bulletlab.utils.math_utils import (
+        quaternion_to_euler, euler_to_quaternion, axis_angle_to_quaternion
+    )
 
     roll, pitch, yaw = quaternion_to_euler((0, 0, 0, 1))
     q = euler_to_quaternion(0.1, 0.2, 0.3)
+    q2 = axis_angle_to_quaternion((0, 0, 1), 90)   # 90° around Z
 """
 
 from __future__ import annotations
@@ -94,6 +97,38 @@ def euler_to_quaternion(
 
     return (x, y, z, w)
 
+
+def axis_angle_to_quaternion(
+    axis: "Sequence[float]",
+    angle_deg: float,
+) -> tuple[float, float, float, float]:
+    """Convert an axis-angle rotation to a quaternion.
+
+    The axis does **not** need to be pre-normalised.
+
+    Args:
+        axis: Rotation axis ``(ax, ay, az)``.
+        angle_deg: Rotation angle in **degrees**.
+
+    Returns:
+        Unit quaternion ``(x, y, z, w)``.
+
+    Example::
+
+        # 90° around the Z axis (yaw)
+        q = axis_angle_to_quaternion((0, 0, 1), 90)
+
+        # Tilt 30° forward (nose-down)
+        q = axis_angle_to_quaternion((0, 1, 0), 30)
+    """
+    ax, ay, az = float(axis[0]), float(axis[1]), float(axis[2])
+    length = math.sqrt(ax ** 2 + ay ** 2 + az ** 2)
+    if length < 1e-9:
+        return (0.0, 0.0, 0.0, 1.0)   # identity
+    ax, ay, az = ax / length, ay / length, az / length
+    half = math.radians(angle_deg) / 2.0
+    s = math.sin(half)
+    return (ax * s, ay * s, az * s, math.cos(half))
 
 def normalize(v: Sequence[float]) -> np.ndarray:
     """Return the unit vector of a vector.

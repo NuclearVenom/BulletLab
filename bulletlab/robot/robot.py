@@ -100,6 +100,7 @@ class Robot:
         fixed_base: bool = False,
         scale: float = 1.0,
         flags: int = 0,
+        tilt: "tuple[tuple[float, float, float], float] | None" = None,
     ) -> "Robot":
         """Load a robot from a URDF or MJCF file.
 
@@ -111,10 +112,14 @@ class Robot:
             sim: The :class:`~bulletlab.core.simulation.Simulation` instance.
             position: Initial base position ``(x, y, z)`` in meters.
             orientation: Initial base orientation as a quaternion ``(x, y, z, w)``.
+                Applied before ``tilt`` if both are given.
             name: Human-readable robot name. Defaults to the filename stem.
             fixed_base: If ``True``, the robot's base is fixed to the world.
             scale: Global scale factor for the loaded model.
             flags: Additional PyBullet load flags.
+            tilt: Optional ``((ax, ay, az), angle_deg)`` shorthand for a
+                single axis-angle rotation applied on top of ``orientation``.
+                The axis does not need to be pre-normalised.
 
         Returns:
             A new :class:`Robot` instance.
@@ -125,10 +130,43 @@ class Robot:
 
         Example::
 
-            robot = Robot.load("kuka_iiwa/model.urdf", sim=sim, position=(0, 0, 0))
+            # Load upright (default)
+            robot = Robot.load("kuka_iiwa/model.urdf", sim=sim)
+
+            # Tilt 30° around the Y axis (nose-down)
+            robot = Robot.load("laikago/laikago.urdf", sim=sim,
+                               tilt=((0, 1, 0), 30))
+
+            # Arbitrary diagonal axis
+            robot = Robot.load("laikago/laikago.urdf", sim=sim,
+                               tilt=((1, 1, 0), 45))
         """
+        import math as _math
+
         path_str = str(path)
         robot_name = name or Path(path_str).stem
+
+        # ── Resolve final orientation ─────────────────────────────────────────
+        if tilt is not None:
+            axis, angle_deg = tilt
+            ax, ay, az = axis
+            # Normalise
+            length = _math.sqrt(ax**2 + ay**2 + az**2)
+            if length > 1e-9:
+                ax, ay, az = ax / length, ay / length, az / length
+            half = _math.radians(angle_deg) / 2.0
+            s = _math.sin(half)
+            tq = (ax * s, ay * s, az * s, _math.cos(half))   # tilt quaternion
+
+            # Compose: final = tilt * base_orientation
+            # q_mul(a, b): (a.xyz cross b.xyz + a.w*b.xyz + b.w*a.xyz, a.w*b.w - a.xyz·b.xyz)
+            ax1, ay1, az1, aw1 = tq
+            bx, by, bz, bw = orientation
+            cx = aw1*bx + ax1*bw + ay1*bz - az1*by
+            cy = aw1*by - ax1*bz + ay1*bw + az1*bx
+            cz = aw1*bz + ax1*by - ay1*bx + az1*bw
+            cw = aw1*bw - ax1*bx - ay1*by - az1*bz
+            orientation = (cx, cy, cz, cw)
 
         path_obj = Path(path_str)
         ext = path_obj.suffix.lower()
@@ -495,6 +533,182 @@ class Robot:
                 force=float(torque_val),
                 physicsClientId=self._sim.client_id,
             )
+
+    # ------------------------------------------------------------------
+    # External forces
+    # ------------------------------------------------------------------
+
+    def apply_force(
+        self,
+        force: tuple[float, float, float],
+        position: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        link: str | None = None,
+        frame: str = "world",
+    ) -> None:
+        """Apply an external force to the robot's base or a named link.
+
+        The force is applied for **one physics step** only (PyBullet clears it
+        automatically after each ``stepSimulation`` call), so you must call
+        this every step to maintain a continuous force (e.g. thrust).
+
+        Args:
+            force: Force vector ``(fx, fy, fz)`` in Newtons.
+            position: Point of application in the frame specified by ``frame``.
+                Use ``(0, 0, 0)`` to apply at the link's centre of mass.
+            link: Name of the link to apply the force to.  ``None`` means the
+                robot's base link.
+            frame: ``"world"`` (default) for world frame, or ``"local"`` for
+                the link's local body frame.
+
+        Example::
+
+            # Simulate upward thrust every step
+            robot.apply_force((0, 0, 20.0))
+
+            # Push the arm's end-effector sideways in body frame
+            robot.apply_force((5, 0, 0), link="gripper", frame="local")
+        """
+        cid = self._sim.client_id
+        pybullet_frame = p.LINK_FRAME if frame == "local" else p.WORLD_FRAME
+
+        if link is None:
+            link_index = -1  # base
+        else:
+            # Find the joint index of this link (link index == joint index in PyBullet)
+            link_index = -1
+            for jname, joint in self._joints.items():
+                lobj = self._links.get(link)
+                if lobj is not None:
+                    link_index = lobj.index
+                    break
+            if link_index == -1 and link not in self._links:
+                raise ValueError(f"Link {link!r} not found. Available: {list(self._links.keys())}")
+
+        p.applyExternalForce(
+            self._body_id,
+            link_index,
+            list(force),
+            list(position),
+            pybullet_frame,
+            physicsClientId=cid,
+        )
+
+    def apply_torque(
+        self,
+        torque: tuple[float, float, float],
+        link: str | None = None,
+        frame: str = "world",
+    ) -> None:
+        """Apply an external torque to the robot's base or a named link.
+
+        Like :meth:`apply_force`, the torque is cleared after each physics step
+        and must be re-applied every step for continuous rotation.
+
+        Args:
+            torque: Torque vector ``(tx, ty, tz)`` in Newton-metres.
+            link: Name of the link.  ``None`` = base.
+            frame: ``"world"`` or ``"local"``.
+
+        Example::
+
+            # Spin the base around the Z axis
+            robot.apply_torque((0, 0, 5.0))
+        """
+        cid = self._sim.client_id
+        pybullet_frame = p.LINK_FRAME if frame == "local" else p.WORLD_FRAME
+
+        if link is None:
+            link_index = -1
+        else:
+            lobj = self._links.get(link)
+            if lobj is None:
+                raise ValueError(f"Link {link!r} not found. Available: {list(self._links.keys())}")
+            link_index = lobj.index
+
+        p.applyExternalTorque(
+            self._body_id,
+            link_index,
+            list(torque),
+            pybullet_frame,
+            physicsClientId=cid,
+        )
+
+    # ------------------------------------------------------------------
+    # Physics dynamics
+    # ------------------------------------------------------------------
+
+    def set_dynamics(
+        self,
+        link: str | None = None,
+        mass: float | None = None,
+        lateral_friction: float | None = None,
+        spinning_friction: float | None = None,
+        rolling_friction: float | None = None,
+        restitution: float | None = None,
+        linear_damping: float | None = None,
+        angular_damping: float | None = None,
+        contact_stiffness: float | None = None,
+        contact_damping: float | None = None,
+    ) -> None:
+        """Change physics/dynamics parameters for a link at runtime.
+
+        Only the parameters you pass are changed — unspecified ones are left
+        at their current PyBullet values.
+
+        Args:
+            link: Link name.  ``None`` = base link.
+            mass: New mass in kg.
+            lateral_friction: Coulomb friction coefficient.
+            spinning_friction: Friction around the contact normal.
+            rolling_friction: Rolling friction coefficient.
+            restitution: Bounciness ``[0, 1]``.
+            linear_damping: Linear velocity damping ``[0, 1]``.
+            angular_damping: Angular velocity damping ``[0, 1]``.
+            contact_stiffness: Contact ERP stiffness (advanced).
+            contact_damping: Contact ERP damping (advanced).
+
+        Example::
+
+            # Make wheels grippier
+            robot.set_dynamics("wheel_fl", lateral_friction=1.5)
+
+            # Change body mass on-the-fly
+            robot.set_dynamics(mass=3.0)
+
+            # Make everything bouncy
+            for name in robot.links:
+                robot.set_dynamics(name, restitution=0.8)
+        """
+        cid = self._sim.client_id
+
+        if link is None:
+            link_index = -1
+        else:
+            lobj = self._links.get(link)
+            if lobj is None:
+                raise ValueError(f"Link {link!r} not found. Available: {list(self._links.keys())}")
+            link_index = lobj.index
+
+        kwargs: dict = {}
+        if mass               is not None: kwargs["mass"]              = float(mass)
+        if lateral_friction   is not None: kwargs["lateralFriction"]  = float(lateral_friction)
+        if spinning_friction  is not None: kwargs["spinningFriction"]  = float(spinning_friction)
+        if rolling_friction   is not None: kwargs["rollingFriction"]   = float(rolling_friction)
+        if restitution        is not None: kwargs["restitution"]       = float(restitution)
+        if linear_damping     is not None: kwargs["linearDamping"]     = float(linear_damping)
+        if angular_damping    is not None: kwargs["angularDamping"]    = float(angular_damping)
+        if contact_stiffness  is not None: kwargs["contactStiffness"]  = float(contact_stiffness)
+        if contact_damping    is not None: kwargs["contactDamping"]    = float(contact_damping)
+
+        if kwargs:
+            p.changeDynamics(
+                self._body_id,
+                link_index,
+                physicsClientId=cid,
+                **kwargs,
+            )
+
+
 
     # ------------------------------------------------------------------
     # Identity

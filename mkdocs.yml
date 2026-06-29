@@ -78,6 +78,7 @@ nav:
     - BulletLabUI: api/ui.md
   - Guides:
     - Robot Guide: guides/robot_guide.md
+    - World Guide: guides/world_guide.md
     - UI Guide: guides/ui_guide.md
     - Telemetry Guide: guides/telemetry_guide.md
     - Plotting Guide: guides/plotting_guide.md
