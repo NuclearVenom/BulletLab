@@ -38,7 +38,7 @@ from bulletlab.utils.math_utils import (
     axis_angle_to_quaternion,
 )
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__ = "Ranasurya Ghosh"
 __url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"

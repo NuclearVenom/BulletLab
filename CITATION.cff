@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use BulletLab in your research or projects, please cite it using the metadata below."
+title: "BulletLab"
+version: "0.1.5"
+license: MIT
+repository-code: "https://github.com/NuclearVenom/BulletLab"
+url: "https://nuclearvenom.github.io/BulletLab/"
+type: software
+abstract: >
+  BulletLab is a research-oriented robotics experimentation framework built on PyBullet.
+  It transforms robots into intuitive Python objects, exposing joints, links, and physics
+  properties through a clean object-oriented API. BulletLab provides an integrated
+  Dear ImGui-based interface for real-time control, parameter tuning, telemetry
+  visualization, and reinforcement learning workflows, designed for rapid prototyping and
+  AI-assisted robotics research.
+authors:
+  - family-names: Ghosh
+    given-names: Ranasurya
+    alias: NuclearVenom
+    website: "https://github.com/NuclearVenom"
+keywords:
+  - robotics
+  - simulation
+  - pybullet
+  - reinforcement-learning
+  - physics-simulation
+  - imgui
+  - telemetry
+  - robot-control
+  - experimentation
+  - python
+date-released: "2026-06-29"

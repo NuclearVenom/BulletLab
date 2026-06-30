@@ -314,6 +314,18 @@ BulletLab is designed to be highly predictable and LLM-friendly. If you are an A
 
 ---
 
+## Community
+
+We welcome contributions and feedback! Check out our community resources:
+
+* **[Contributing Guide](CONTRIBUTING.md)** – How to build, test, and contribute to BulletLab
+* **[Code of Conduct](CODE_OF_CONDUCT.md)** – Our community standards
+* **[Security Policy](SECURITY.md)** – How to report security vulnerabilities responsibly
+* **[Roadmap](ROADMAP.md)** – Our vision for future releases
+* **[Citation](CITATION.cff)** – How to cite BulletLab in academic research
+
+---
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
