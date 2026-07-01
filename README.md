@@ -10,10 +10,13 @@ Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 
 [![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2B9348?style=flat)](LICENSE)
-[![BulletLab Arsenal](https://img.shields.io/badge/Registry-BulletLab_Arsenal-239281?style=plastic)](https://github.com/NuclearVenom/BulletLab-Arsenal)
+[![BulletLab Arsenal](https://img.shields.io/badge/Registry-BulletLab_Arsenal-FF8C00?style=plastic)](https://github.com/NuclearVenom/BulletLab-Arsenal)
 
 **Install BulletLab library:** `pip install bulletlab`<br><br>
 [![Read Documentation](https://img.shields.io/badge/Read_The_Documentation-2094F3?style=for-the-badge)](https://nuclearvenom.github.io/BulletLab/)
+&nbsp;
+[![Visit BulletLab Arsenal](https://img.shields.io/badge/Checkout_BulletLab_Arsenal-333333?style=for-the-badge)](https://github.com/NuclearVenom/BulletLab-Arsenal)
+
 <br><br>
 
 ![BulletLab example UI](https://raw.githubusercontent.com/NuclearVenom/BulletLab/main/assets/bulletlab_ui.png)
