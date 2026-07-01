@@ -33,7 +33,7 @@ from __future__ import annotations
 import sys
 import time
 from collections import deque
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 # PyQtGraph and Qt are optional — graceful fallback if not installed
 try:

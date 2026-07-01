@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use BulletLab in your research or projects, please cite it using the metadata below."
 title: "BulletLab"
-version: "0.1.5"
+version: "0.2.0"
 license: MIT
 repository-code: "https://github.com/NuclearVenom/BulletLab"
 url: "https://nuclearvenom.github.io/BulletLab/"
@@ -29,4 +29,4 @@ keywords:
   - robot-control
   - experimentation
   - python
-date-released: "2026-06-29"
+date-released: "2026-07-01"

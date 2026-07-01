@@ -25,6 +25,16 @@ world.load_plane()
 robot = Robot.load("husky/husky.urdf", sim=sim, position=(0, 0, 0.2))
 ```
 
+### Arsenal Loading
+BulletLab includes an official registry for community robots. Use `Robot.install()` for permanent installation, or prefix the path with `arsenal:` to load directly into a session cache.
+```python
+# Permanent install
+Robot.install("reference_bot")
+
+# Direct session load
+robot = Robot.load("arsenal:reference_bot/BLem1", sim=sim)
+```
+
 ### Motor Control
 Instead of `p.setJointMotorControl2(id, joint_index, p.VELOCITY_CONTROL, targetVelocity=15)`, use:
 ```python

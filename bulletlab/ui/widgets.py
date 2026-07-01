@@ -21,7 +21,7 @@ Example::
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 # ImGui is optional — graceful fallback
 try:

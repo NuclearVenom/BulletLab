@@ -8,8 +8,9 @@ Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 
 >**A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern ImGui-based controls, telemetry, visualization, and reinforcement learning workflows.**
 
-[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2B9348?style=flat)](LICENSE)
+[![BulletLab Arsenal](https://img.shields.io/badge/Registry-BulletLab_Arsenal-239281?style=plastic)](https://github.com/NuclearVenom/BulletLab-Arsenal)
 
 **Install BulletLab library:** `pip install bulletlab`<br><br>
 [![Read Documentation](https://img.shields.io/badge/Read_The_Documentation-2094F3?style=for-the-badge)](https://nuclearvenom.github.io/BulletLab/)
@@ -37,6 +38,19 @@ p.setJointMotorControl2(
 ```python
 robot.joints["motor"].velocity = 15
 ```
+
+### BulletLab Arsenal: The Official Package Registry
+
+Just as Python has PyPI for software packages, BulletLab has **[Arsenal](https://github.com/NuclearVenom/BulletLab-Arsenal)** for verified robotics assets. 
+
+Arsenal is the official registry of the BulletLab ecosystem. It solves the long-standing problem of hunting down compatible URDFs and manually fixing missing meshes. Arsenal provides:
+
+* **Verified Robot Packages:** Curated, community-contributed models guaranteed to load correctly.
+* **One-Line Installation:** Permanently download assets to your local machine (`Robot.install()`).
+* **Direct Loading:** Stream assets directly into your session cache without permanently modifying your filesystem (`Robot.load("arsenal:...")`).
+* **Standardized Package Format:** Powered by machine-readable manifests (`metadata.json`) for automated validation.
+
+Whether you are conducting reproducible research or building quick demos, Arsenal ensures you spend less time configuring assets and more time writing robotics code.
 
 ---
 
@@ -175,6 +189,31 @@ app.run()
 
 Hovering over an Explorer row or a Properties slider instantly highlights
 the matching 3D part in the PyBullet window with an orange pulsing glow.
+
+### BulletLab Arsenal
+
+[BulletLab Arsenal](https://github.com/NuclearVenom/BulletLab-Arsenal) is the official
+robot asset registry — load community robots with a single line, no manual download required.
+
+```python
+from bulletlab import Simulation, Robot
+from bulletlab.core.world import World
+
+sim = Simulation(mode="gui").start()
+World(sim).load_plane()
+
+# Install permanently to ~/.bulletlab/packages/
+Robot.install("reference_bot")
+
+# Load directly from Arsenal into a session cache (cleaned up on exit)
+robot = Robot.load("arsenal:reference_bot", sim=sim, position=(0, 0, 0.3))
+
+# Load a specific model
+robot = Robot.load("arsenal:reference_bot/BLem1", sim=sim)
+```
+
+All standard `Robot.load()` parameters — `position`, `fixed_base`, `tilt`, etc. — work
+identically with Arsenal sources.
 
 ### ImGui Control Panel
 

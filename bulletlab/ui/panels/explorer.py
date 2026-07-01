@@ -17,7 +17,7 @@ Example::
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
 try:
     import imgui

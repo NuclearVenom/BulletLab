@@ -15,15 +15,16 @@ This roadmap reflects the long-term vision for BulletLab. It outlines the planne
 - [x] Documentation
 - [x] Cookbook
 - [x] AI snippets
+- [x] Community robot ecosystem (BulletLab Arsenal)
+- [x] Camera improvements (Dynamic tracking)
+- [x] Robot inspector
 
 ## v0.2.x
 
 - [ ] Plugin architecture
 - [ ] Sensor framework
 - [ ] Better plotting
-- [ ] Camera improvements
 - [ ] Asset browser
-- [ ] Robot inspector
 
 ## v0.3.x
 
@@ -46,4 +47,3 @@ This roadmap reflects the long-term vision for BulletLab. It outlines the planne
 - [ ] Research-ready framework
 - [ ] Comprehensive documentation
 - [ ] Production-quality testing
-- [ ] Community robot ecosystem

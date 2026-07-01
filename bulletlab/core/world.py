@@ -20,7 +20,7 @@ from __future__ import annotations
 import math
 import random
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 
 import pybullet as p
 import pybullet_data

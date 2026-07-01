@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pybullet as p
@@ -102,18 +102,22 @@ class Robot:
         flags: int = 0,
         tilt: "tuple[tuple[float, float, float], float] | None" = None,
     ) -> "Robot":
-        """Load a robot from a URDF or MJCF file.
+        """Load a robot from a URDF/MJCF file or an Arsenal package.
 
         Automatically discovers all joints and links and exposes them by name.
 
+        **Local file loading** (unchanged behaviour):
+
         Args:
-            path: Path to the URDF/MJCF file. Can be an absolute path or a
-                filename resolvable from the pybullet_data search path.
+            path: Path to the URDF/MJCF file.  Can be an absolute path or a
+                filename resolvable from the pybullet_data search path.  To
+                load from BulletLab Arsenal prefix the argument with
+                ``"arsenal:"`` (see below).
             sim: The :class:`~bulletlab.core.simulation.Simulation` instance.
             position: Initial base position ``(x, y, z)`` in meters.
             orientation: Initial base orientation as a quaternion ``(x, y, z, w)``.
                 Applied before ``tilt`` if both are given.
-            name: Human-readable robot name. Defaults to the filename stem.
+            name: Human-readable robot name.  Defaults to the filename stem.
             fixed_base: If ``True``, the robot's base is fixed to the world.
             scale: Global scale factor for the loaded model.
             flags: Additional PyBullet load flags.
@@ -121,29 +125,56 @@ class Robot:
                 single axis-angle rotation applied on top of ``orientation``.
                 The axis does not need to be pre-normalised.
 
+        **Arsenal loading** — prefix ``path`` with ``"arsenal:"``:
+
+        The robot is downloaded from the BulletLab Arsenal registry into a
+        temporary session cache and loaded transparently.  The cache is
+        deleted automatically when the Python process exits.
+
+        Arsenal URI formats::
+
+            "arsenal:reference_bot"           # default model
+            "arsenal:reference_bot/BLem1"     # specific model
+
         Returns:
             A new :class:`Robot` instance.
 
         Raises:
-            FileNotFoundError: If the URDF/MJCF file cannot be found.
+            FileNotFoundError: If a local URDF/MJCF file cannot be found.
             RuntimeError: If PyBullet fails to load the model.
+            bulletlab.arsenal.ArsenalError: If Arsenal resolution or download fails.
 
         Example::
 
-            # Load upright (default)
+            # Local file (unchanged)
             robot = Robot.load("kuka_iiwa/model.urdf", sim=sim)
 
-            # Tilt 30° around the Y axis (nose-down)
+            # Arsenal — default model
+            robot = Robot.load("arsenal:reference_bot", sim=sim)
+
+            # Arsenal — specific model with spawn position
+            robot = Robot.load(
+                "arsenal:reference_bot/BLem1",
+                sim=sim,
+                position=(0, 0, 0.5),
+            )
+
+            # Tilt 30° around the Y axis (works with both local and Arsenal)
             robot = Robot.load("laikago/laikago.urdf", sim=sim,
                                tilt=((0, 1, 0), 30))
-
-            # Arbitrary diagonal axis
-            robot = Robot.load("laikago/laikago.urdf", sim=sim,
-                               tilt=((1, 1, 0), 45))
         """
         import math as _math
 
         path_str = str(path)
+
+        # ── Arsenal URI handling ──────────────────────────────────────────────
+        if path_str.startswith("arsenal:"):
+            arsenal_source = path_str[len("arsenal:"):]
+            path_str = cls._load_from_arsenal(arsenal_source)
+            if name is None:
+                # Derive name from the package portion of the URI
+                name = arsenal_source.split("/")[0]
+
         robot_name = name or Path(path_str).stem
 
         # ── Resolve final orientation ─────────────────────────────────────────
@@ -210,6 +241,84 @@ class Robot:
         )
         sim.add_robot(robot)
         return robot
+
+    @classmethod
+    def _load_from_arsenal(cls, source: str) -> str:
+        """Resolve an Arsenal source string to a local URDF path.
+
+        Downloads the package's URDF and meshes into the session-scoped
+        temporary cache and returns the path to the (rewritten) local URDF.
+
+        Args:
+            source: Arsenal source string **without** the ``"arsenal:"``
+                prefix, e.g. ``"reference_bot"`` or ``"reference_bot/BLem1"``.
+
+        Returns:
+            Absolute path string to the downloaded URDF file.
+
+        Raises:
+            bulletlab.arsenal.ArsenalError: If the package or model cannot be
+                resolved or downloaded.
+        """
+        from bulletlab.arsenal.cache import get_session_cache
+        from bulletlab.arsenal.downloader import download_package
+        from bulletlab.arsenal.resolver import parse_source, resolve_model, resolve_package
+
+        package_name, model_id = parse_source(source)
+        resolve_package(package_name)   # validates existence; raises PackageNotFoundError
+        model = resolve_model(package_name, model_id)
+        entrypoint: str = model["entrypoint"]
+
+        cache_dir = get_session_cache() / package_name
+        urdf_path = download_package(package_name, entrypoint, cache_dir)
+        return str(urdf_path)
+
+    @classmethod
+    def install(
+        cls,
+        source: str,
+        path: "str | Path | None" = None,
+    ) -> Path:
+        """Permanently install an Arsenal robot package to the local machine.
+
+        Downloads only the URDF and mesh files required by the requested model.
+        Installed packages persist across Python sessions and can be loaded
+        via a local file path afterwards.
+
+        Use :meth:`load` with an ``"arsenal:"`` prefix for ad-hoc loading
+        without permanent installation.
+
+        Args:
+            source: One of:
+
+                * ``"package_name"`` — install the default model.
+                * ``"package_name/model_id"`` — install a specific model.
+
+            path: Optional local directory to install into.  When omitted,
+                installs to ``~/.bulletlab/packages/<package_name>/``.
+
+        Returns:
+            :class:`pathlib.Path` to the installed URDF file.
+
+        Raises:
+            bulletlab.arsenal.ArsenalError: On any resolution or download failure.
+
+        Example::
+
+            # Install the default model of reference_bot globally
+            Robot.install("reference_bot")
+
+            # Install a specific model to a project-local directory
+            Robot.install("reference_bot/BLem1", path="robots/")
+
+            # Load the installed robot afterwards
+            robot = Robot.load(
+                "/home/user/.bulletlab/packages/reference_bot/BLem1.urdf",
+                sim=sim,
+            )
+        """
+        from bulletlab.arsenal.installer import install as _install
+        return _install(source, path=path)
 
     # ------------------------------------------------------------------
     # Discovery

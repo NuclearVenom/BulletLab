@@ -280,3 +280,53 @@ for name in robot.links:
 **Key rule:** `apply_force()` and `apply_torque()` are **single-step** — PyBullet clears
 them after every `sim.step()`. Call them inside your loop for continuous effects.
 `set_dynamics()` is **persistent** — call it once to change a property permanently.
+
+## 12. Loading from BulletLab Arsenal
+
+[BulletLab Arsenal](https://github.com/NuclearVenom/bulletlab-arsenal) is the official
+robot asset registry.  No manual download, no path setup.
+
+```python
+from bulletlab import Simulation, Robot, ArsenalError
+from bulletlab.core.world import World
+
+# ── Option A: Install permanently, then load from local path ─────────────────
+urdf = Robot.install("reference_bot")           # → ~/.bulletlab/packages/…
+urdf = Robot.install("reference_bot/BLem1")     # specific model
+urdf = Robot.install("reference_bot", path="robots/")  # custom directory
+
+# Load the installed URDF as a normal local file
+sim = Simulation(mode="gui").start()
+World(sim).load_plane()
+robot = Robot.load(str(urdf), sim=sim, position=(0, 0, 0.3))
+
+# ── Option B: Load directly via session cache (no permanent files) ────────────
+robot = Robot.load("arsenal:reference_bot", sim=sim)
+robot = Robot.load("arsenal:reference_bot/BLem1", sim=sim, position=(0, 0, 0.5))
+
+# All standard Robot.load() parameters work with Arsenal URIs:
+robot = Robot.load(
+    "arsenal:reference_bot",
+    sim=sim,
+    position=(0, 0, 0.5),
+    fixed_base=False,
+    tilt=((0, 1, 0), 10),   # tilt works too
+)
+
+# ── Error handling ────────────────────────────────────────────────────────────
+try:
+    robot = Robot.load("arsenal:no_such_package", sim=sim)
+except ArsenalError as e:
+    print(f"Arsenal error: {e}")
+
+while sim.is_connected:
+    sim.step()
+```
+
+**Install vs. direct load:**
+
+| | `Robot.install()` | `Robot.load("arsenal:...")` |
+|---|---|---|
+| Files after exit | ✅ Permanent | ❌ Cleaned up automatically |
+| Offline use | ✅ Yes | ❌ Network required each session |
+| Best for | Reproducible setups | Quick demos and experiments |

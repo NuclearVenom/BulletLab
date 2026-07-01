@@ -59,6 +59,92 @@ The angle is always in **degrees**. When both `orientation` and `tilt` are given
 is applied *on top of* the base orientation (quaternion composition).
 
 
+## Loading from BulletLab Arsenal
+
+[BulletLab Arsenal](https://github.com/NuclearVenom/BulletLab-Arsenal) is the official
+robot asset registry.  You can load any Arsenal package with a single line — no manual
+download, no path configuration.
+
+### Install then Load (Permanent)
+
+`Robot.install()` downloads the package permanently to `~/.bulletlab/packages/`.
+The files survive process restarts and can be loaded via a local path afterwards.
+
+```python
+from bulletlab import Robot
+
+# Install the default model
+Robot.install("reference_bot")
+
+# Install a specific model
+Robot.install("reference_bot/BLem1")
+
+# Install to a custom project-local directory
+Robot.install("reference_bot", path="robots/")
+```
+
+### Load Directly (Session Cache)
+
+Prefix any `Robot.load()` call with `"arsenal:"` to download assets into a
+temporary session cache.  The cache is deleted automatically when the Python
+process exits — no permanent files are left behind.
+
+```python
+from bulletlab import Simulation, Robot
+from bulletlab.core.world import World
+
+sim = Simulation(mode="gui").start()
+World(sim).load_plane()
+
+# Load the default model of a package
+robot = Robot.load("arsenal:reference_bot", sim=sim, position=(0, 0, 0.3))
+
+# Load a specific model
+robot = Robot.load("arsenal:reference_bot/BLem1", sim=sim)
+
+# All standard Robot.load() parameters work exactly as usual
+robot = Robot.load(
+    "arsenal:reference_bot",
+    sim=sim,
+    position=(0, 0, 0.5),
+    fixed_base=False,
+    tilt=((0, 1, 0), 10),
+)
+```
+
+### Install vs. Direct Load
+
+| | `Robot.install()` | `Robot.load("arsenal:...")` |
+|---|---|---|
+| Files on disk after exit | ✅ Permanent | ❌ Deleted automatically |
+| Works offline after first use | ✅ Yes | ❌ Network required every session |
+| Use case | Production, reproducible research | Quick experiments, demos |
+
+### Error Handling
+
+All Arsenal errors inherit from `ArsenalError`:
+
+```python
+from bulletlab import Robot, ArsenalError
+
+try:
+    robot = Robot.load("arsenal:nonexistent_pkg", sim=sim)
+except ArsenalError as e:
+    print(f"Arsenal error: {e}")
+```
+
+Specific exception types for fine-grained handling:
+
+```python
+from bulletlab.arsenal import (
+    PackageNotFoundError,
+    ModelNotFoundError,
+    NetworkError,
+    ManifestError,
+)
+```
+
+
 ## Accessing Joints
 
 Joints are accessible by name via `robot.joints`:
