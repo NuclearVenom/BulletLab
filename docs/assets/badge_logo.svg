@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 646 646"
+     fill="#ffffff">
+
+  <!-- Left bracket -->
+  <path d="
+    M0 0
+    H153
+    V40
+    H40
+    V607
+    H153
+    V646
+    H0
+    Z
+  "/>
+
+  <!-- BulletLab symbol -->
+  <path d="
+    M247 75
+    H399
+    V229
+    H361
+    V303
+    H475
+    V380
+    H436
+    V342
+    H361
+    V453
+    H475
+    V570
+    H436
+    V495
+    H211
+    V570
+    H171
+    V453
+    H285
+    V342
+    H211
+    V380
+    H171
+    V303
+    H285
+    V229
+    H247
+    Z
+  "/>
+
+  <!-- Right bracket -->
+  <path d="
+    M493 0
+    H646
+    V646
+    H493
+    V607
+    H607
+    V40
+    H493
+    Z
+  "/>
+
+</svg>
