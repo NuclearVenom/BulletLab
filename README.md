@@ -8,8 +8,9 @@ Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)
 
 >**A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern ImGui-based controls, telemetry, visualization, and reinforcement learning workflows.**
 
-[![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Python 3.10](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2B9348?style=flat)](LICENSE)
+[![CI](https://github.com/NuclearVenom/BulletLab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NuclearVenom/BulletLab/actions/workflows/ci.yml)
 [![BulletLab Arsenal](https://img.shields.io/badge/Registry-BulletLab_Arsenal-FF8C00?style=plastic)](https://github.com/NuclearVenom/BulletLab-Arsenal)
 
 **Install BulletLab library:** `pip install bulletlab`<br><br>
