@@ -44,12 +44,13 @@ bulletlab/
 │
 ├── ui/
 │   ├── app.py           ← depends on all panels, imgui, glfw
+│   ├── script_runner.py ← stdlib only (ast, time)
 │   ├── widgets.py       ← depends on imgui (optional)
 │   └── panels/
 │       ├── explorer.py  ← depends on robot types
 │       ├── properties.py← depends on robot types
 │       ├── telemetry.py ← depends on TelemetryManager
-│       ├── console.py   ← stdlib only
+│       ├── console.py   ← depends on script_runner, stdlib only
 │       └── plots.py     ← depends on TelemetryManager
 │
 └── utils/

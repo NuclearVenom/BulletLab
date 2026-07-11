@@ -104,15 +104,53 @@ app.register_panel("My Panel", my_render_function)
 
 ## Console Panel
 
-The console provides an interactive Python REPL inside the UI:
+The console provides an interactive Python environment inside the UI. It operates in two modes:
+
+**Single-line / REPL mode** — a single statement executes immediately, just like a Python REPL:
 
 ```python
-# Example commands you can type in the console:
 robot.links["wheel"].mass = 10
 robot.joints["motor"].velocity = 15
 print(robot.base_position)
 sim.pause()
 ```
+
+**Sequential (multi-statement) mode** — when you submit a script with more than one top-level
+statement from the expanded console, each statement is executed **one per simulation frame**.
+This means each physics change is actually rendered before the next line runs, so joint movements,
+position changes, and sensor reads are fully visible:
+
+```python
+# Move joint to 1.0, pause 500 ms, return to 0.0
+robot.joints["lbr_iiwa_joint_4"].position = 1.0
+wait(500)
+robot.joints["lbr_iiwa_joint_4"].position = 0.0
+```
+
+```python
+# Oscillate five times — each wait() holds the position visibly
+for _ in range(5):
+    robot.joints["lbr_iiwa_joint_4"].position = 1.0
+    wait(300)
+    robot.joints["lbr_iiwa_joint_4"].position = -1.0
+    wait(300)
+```
+
+> **Note:** A `for` or `while` loop is a single statement — `wait()` and `step()` must be
+> called *inside* the loop body to get visible motion between iterations.
+
+### Built-in console commands
+
+| Command | Description |
+|---------|-------------|
+| `wait(ms)` | Pause script execution for *ms* milliseconds. The simulation and UI keep running normally during the wait. |
+| `step(n=1)` | Advance the simulation by *n* physics steps immediately, then continue. |
+
+### Running and stopping scripts
+
+- Click **Run Code** to submit the script from the expanded editor.
+- While a script is running, a **● Running…** indicator and a **Stop** button appear at the top.
+- Submitting a new script cancels any currently running script.
 
 The console namespace includes `sim`, `robot` (first robot), and `telemetry` by default.
 

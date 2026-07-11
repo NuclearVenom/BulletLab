@@ -221,31 +221,33 @@ class BulletLabUI:
         self._impl = None
         self._imgui_context = None
 
-    def _set_window_icon(self) -> None:
+    def _set_window_icon(self, target_window: Any = None) -> None:
         """Load assets/logo.png and set it as the GLFW window icon.
 
         Silently skips if Pillow is not installed or the file is missing.
         The icon is displayed in the OS taskbar and the window title bar.
         """
+        target = target_window or self._window
+        if target is None:
+            return
         try:
             from PIL import Image
-            import numpy as np
             from pathlib import Path
 
             # Search: next to this file, then from CWD, then from repo root
             candidates = [
-                Path(__file__).parent.parent.parent / "assets" / "logo.png",
-                Path.cwd() / "assets" / "logo.png",
+                Path(__file__).parent.parent.parent / "docs" / "assets" / "logo.png",
+                Path.cwd() / "docs" / "assets" / "logo.png",
             ]
             icon_path = next((p for p in candidates if p.exists()), None)
             if icon_path is None:
+                print(f"[BulletLab] Window icon not found in {candidates[0]} or {candidates[1]}")
                 return
 
             img = Image.open(icon_path).convert("RGBA").resize((64, 64), Image.LANCZOS)
-            pixels = np.array(img, dtype=np.uint8)
-            glfw.set_window_icon(self._window, 1, [pixels])
-        except Exception:
-            pass   # non-fatal — icon is cosmetic only
+            glfw.set_window_icon(target, 1, [img])
+        except Exception as e:
+            print(f"[BulletLab] Failed to set window icon: {e}")
 
     # ------------------------------------------------------------------
     # Main loops
@@ -294,6 +296,10 @@ class BulletLabUI:
         self._restore_main_context()
         glfw.poll_events()
         self._impl.process_inputs()
+
+        # Tick the sequential console script runner (one statement per frame)
+        if self._console is not None:
+            self._console.tick()
 
         # Highlighter: reset pending hover before the frame renders
         if self._highlighter is not None:
@@ -420,6 +426,8 @@ class BulletLabUI:
                 self._console.collapse()
             self._restore_main_context()
             return False
+
+        self._set_window_icon(self._console_window)
 
         main_x, main_y = glfw.get_window_pos(self._window)
         glfw.set_window_pos(self._console_window, main_x + 80, main_y + 80)
@@ -602,7 +610,7 @@ class BulletLabUI:
                 imgui.end_menu()
 
             # Status bar
-            sim_status = "⏸ Paused" if self._sim.is_paused else "▶ Running"
+            sim_status = "(Paused)" if self._sim.is_paused else "(Running)"
             imgui.same_line(spacing=20)
             imgui.text(
                 f"  {sim_status}  |  "
@@ -643,7 +651,7 @@ class BulletLabUI:
                 ns["robot"] = r
         if self._telemetry is not None:
             ns["telemetry"] = self._telemetry
-        self._console = ConsolePanel(namespace=ns)
+        self._console = ConsolePanel(namespace=ns, sim=self._sim)
 
     def register_panel(self, title: str, render_fn: Callable[[], None]) -> None:
         """Register a custom panel.

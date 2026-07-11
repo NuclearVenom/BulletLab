@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "BulletLab"
-version = "0.2.0"
+version = "0.2.1"
 
 description = "A high-level robotics simulation and experimentation framework built on PyBullet."
 

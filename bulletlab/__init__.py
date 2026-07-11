@@ -38,8 +38,9 @@ from bulletlab.utils.math_utils import (
     axis_angle_to_quaternion,
 )
 from bulletlab.arsenal.exceptions import ArsenalError
+from bulletlab.console.decorators import command
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "Ranasurya Ghosh"
 __url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"
@@ -59,6 +60,6 @@ __all__ = [
     "euler_to_quaternion",
     "quaternion_to_euler",
     "axis_angle_to_quaternion",
-    # Arsenal
     "ArsenalError",
+    "command",
 ]

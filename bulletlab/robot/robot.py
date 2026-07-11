@@ -532,6 +532,49 @@ class Robot:
             if not joint.is_fixed:
                 joint.reset(pos=0.0, vel=0.0)
 
+    def delete(self) -> None:
+        """Removes the robot from the simulation.
+        
+        Example::
+        
+            robot.delete()
+        """
+        if hasattr(self._sim, "remove_robot"):
+            self._sim.remove_robot(self)
+        else:
+            p.removeBody(self._body_id, physicsClientId=self._sim.client_id)
+            
+    def tilt(self, axis: str, degrees: float) -> None:
+        """Rotates the robot around 'x', 'y', or 'z' axis.
+        
+        Example::
+        
+            robot.tilt('z', 90)
+        """
+        axis = axis.lower()
+        if axis not in ('x', 'y', 'z'):
+            raise ValueError("axis must be 'x', 'y', or 'z'")
+            
+        rads = math.radians(degrees)
+        euler = list(self.base_orientation_euler)
+        if axis == 'x': euler[0] += rads
+        elif axis == 'y': euler[1] += rads
+        elif axis == 'z': euler[2] += rads
+        
+        from bulletlab.utils.math_utils import euler_to_quaternion
+        orn = euler_to_quaternion(*euler)
+        
+        p.resetBasePositionAndOrientation(
+            self._body_id,
+            list(self.base_position),
+            list(orn),
+            physicsClientId=self._sim.client_id,
+        )
+
+    def scale(self, factor: float) -> None:
+        """Scale the robot. (Requires re-loading in PyBullet)"""
+        raise NotImplementedError("Dynamic scaling of existing robots is not yet supported in PyBullet.")
+
     # ------------------------------------------------------------------
     # RL interface
     # ------------------------------------------------------------------

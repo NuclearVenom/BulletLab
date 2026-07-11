@@ -27,7 +27,9 @@ BulletLab provides a high-level object-oriented interface to [PyBullet](https://
 
 ## Key Features
 - **Object-oriented robot interface** — joints and links as Python objects
-- **ImGui control window** — separate from PyBullet visualization
+- **ImGui control window** — modern interface, separate from PyBullet visualization
+- **Interactive UI Console** — live test API calls, script sequential movements, and register custom [commands](guides/console_guide.md#built-in-commands)
+- **[BulletLab Arsenal](guides/arsenal_guide.md)** — built-in model registry to seamlessly download and spawn high-quality robots on the fly
 - **Live telemetry** — watch any robot state variable
 - **Data logging** — CSV and JSON output
 - **Live plots** — PyQtGraph-powered real-time charts
