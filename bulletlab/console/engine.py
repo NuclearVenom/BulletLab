@@ -15,6 +15,16 @@ from typing import Any, Callable
 from bulletlab.console.registry import registry
 from bulletlab.console.context import _active_context
 
+# Thread-local storage for the per-run stop event so that wait()/step()
+# utility commands can check the correct event even after engine._stop_event
+# has been replaced by a newer load() call.
+_thread_local: threading.local = threading.local()
+
+
+def get_current_stop_event() -> threading.Event | None:
+    """Return the stop event for the currently executing script thread, or None."""
+    return getattr(_thread_local, "stop_event", None)
+
 
 class ProxyObject:
     """A dynamic object used to populate the execution namespace with nested commands.
@@ -53,7 +63,7 @@ class ConsoleEngine:
 
         self._namespace: dict[str, Any] = {}
         self._thread: threading.Thread | None = None
-        self._stop_event = threading.Event()
+        self._stop_event: threading.Event = threading.Event()
         self._msg_queue: queue.Queue = queue.Queue()
         self._active: bool = False
         self._run_id: int = 0
@@ -187,8 +197,12 @@ class ConsoleEngine:
             return False
 
         self._active = True
-        self._stop_event.clear()
+        # Create a fresh stop event for this run so that clearing it for the
+        # new run does not accidentally re-enable a thread from the previous
+        # run that is still sleeping (e.g. inside time.sleep()).
+        self._stop_event = threading.Event()
         self._run_id += 1
+        run_stop_event = self._stop_event
 
         lines = source.splitlines()
         if len(lines) == 1:
@@ -198,7 +212,7 @@ class ConsoleEngine:
             self._on_echo(f">>> {lines[0]}\n{cont}")
 
         self._thread = threading.Thread(
-            target=self._worker, args=(source, self._run_id), daemon=True
+            target=self._worker, args=(source, self._run_id, run_stop_event), daemon=True
         )
         self._thread.start()
         return True
@@ -230,12 +244,15 @@ class ConsoleEngine:
                         self._sim.step()
                 ack_event.set()
 
-    def _worker(self, source: str, run_id: int) -> None:
+    def _worker(self, source: str, run_id: int, stop_event: threading.Event) -> None:
         """Background thread worker for script execution."""
         thread_id = threading.get_ident()
+        # Store the per-run stop event in thread-local so utility commands
+        # (wait, step) can check it without holding a stale engine reference.
+        _thread_local.stop_event = stop_event
 
         def tracer(frame: Any, event: str, arg: Any) -> Callable:
-            if self._stop_event.is_set():
+            if stop_event.is_set():
                 raise SystemExit("Script cancelled")
             return tracer
 

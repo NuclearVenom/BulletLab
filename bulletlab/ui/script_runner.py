@@ -114,8 +114,11 @@ class ScriptRunner:
             return False
 
         self._active = True
-        self._stop_event.clear()
+        # Fresh event per run: the old thread keeps its reference to the old
+        # event (which stays set), preventing it from continuing after cancel.
+        self._stop_event = threading.Event()
         self._run_id += 1
+        run_stop_event = self._stop_event
 
         lines = source.splitlines()
         if len(lines) == 1:
@@ -125,7 +128,7 @@ class ScriptRunner:
             self._on_echo(f">>> {lines[0]}\n{cont}")
 
         self._thread = threading.Thread(
-            target=self._worker, args=(source, self._run_id), daemon=True
+            target=self._worker, args=(source, self._run_id, run_stop_event), daemon=True
         )
         self._thread.start()
         return True
@@ -164,14 +167,14 @@ class ScriptRunner:
     # Internal worker
     # ------------------------------------------------------------------
 
-    def _worker(self, source: str, run_id: int) -> None:
+    def _worker(self, source: str, run_id: int, stop_event: threading.Event) -> None:
         """Background thread worker for script execution."""
         thread_id = threading.get_ident()
 
         # Thread-local trace function allows near-instant cancellation 
         # even if the script is in an infinite loop.
         def tracer(frame: Any, event: str, arg: Any) -> Callable:
-            if self._stop_event.is_set():
+            if stop_event.is_set():
                 raise SystemExit("Script cancelled")
             return tracer
 
