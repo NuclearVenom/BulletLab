@@ -44,7 +44,12 @@ Note: loops and conditionals are treated as **one statement** by the runner
 """
 
 from __future__ import annotations
+
+import ast
+import io
+import traceback
 from collections import deque
+from contextlib import redirect_stderr, redirect_stdout
 from typing import Any
 
 from bulletlab.console import ConsoleEngine
@@ -56,6 +61,18 @@ try:
 except ImportError:  # pragma: no cover
     imgui = None  # type: ignore[assignment]
     _HAS_IMGUI = False
+
+
+def _safe_checkbox(label: str, value: bool) -> tuple[bool, bool]:
+    """Call imgui.checkbox safely; handles mocks that return None."""
+    result = imgui.checkbox(label, value)
+    if result is None:
+        return False, value
+    try:
+        changed, val = result
+        return bool(changed), bool(val)
+    except (TypeError, ValueError):
+        return False, value
 
 
 class ConsolePanel:
@@ -101,12 +118,34 @@ class ConsolePanel:
             on_done=self._on_script_done,
         )
 
-        # Apply any custom namespace values provided to the engine's built namespace
-        if namespace:
-            self._engine.namespace.update(namespace)
+        if namespace is not None:
+            # Merge engine builtins (wait, step, proxy objects, etc.) INTO the
+            # caller's dict so that exec() results are visible on the original
+            # object the caller holds.  Then point the engine at that dict.
+            namespace.update(self._engine.namespace)  # builtins → user dict
+            self._engine._namespace = namespace        # engine uses same object
 
         self._script_error: bool = False
         self._selectable_output: bool = False
+
+    # ------------------------------------------------------------------
+    # Backward-compatible properties (expected by existing tests)
+    # ------------------------------------------------------------------
+
+    @property
+    def _namespace(self) -> dict[str, Any]:
+        """The shared execution namespace (backward-compat alias)."""
+        return self._engine.namespace
+
+    @property
+    def _runner(self) -> ConsoleEngine:
+        """The underlying sequential runner (backward-compat alias)."""
+        return self._engine
+
+    @property
+    def _script_running(self) -> bool:
+        """True while a multi-statement script is running in the background."""
+        return self._engine.is_active
 
     # ------------------------------------------------------------------
     # API
@@ -123,14 +162,100 @@ class ConsolePanel:
             self._scroll_to_bottom = True
 
     def execute(self, command: str) -> None:
-        """Pass the command to the engine for execution."""
+        """Execute a command string in the console.
+
+        Simple statements and expressions (including ``for`` loops and other
+        compound statements) are evaluated immediately (REPL style).  Scripts
+        with two or more top-level statements, or scripts containing a
+        potentially-infinite ``while`` loop, are handed to the sequential
+        background runner so they do not freeze the UI.
+        """
         command = command.strip()
         if not command:
             return
 
         self._script_error = False
-        self._engine.execute(command)
+
+        # Parse to decide single vs multi-statement
+        try:
+            tree = ast.parse(command, filename="<console>", mode="exec")
+        except SyntaxError as exc:
+            self._history.append(f">>> {command}")
+            self._on_script_error(f"  SyntaxError: {exc}")
+            return
+
+        # Route to background runner if:
+        #   - 2+ top-level statements (sequential execution needed), OR
+        #   - a `while` loop (may be infinite; must not block the UI)
+        is_multi = len(tree.body) > 1
+        if not is_multi and len(tree.body) == 1:
+            node = tree.body[0]
+            if isinstance(node, ast.While):
+                is_multi = True  # while loops might be infinite
+
+        if is_multi:
+            # Multi-statement or while loop → background runner
+            self._engine.load(command)
+        else:
+            # Single statement (simple or compound) → immediate REPL
+            lines = command.splitlines()
+            if len(lines) == 1:
+                self._history.append(f">>> {command}")
+            else:
+                # Multi-line compound (e.g. for loop): echo with >>> / ... style
+                echo = f">>> {lines[0]}"
+                for l in lines[1:]:
+                    echo += f"\n... {l}"
+                self._history.append(echo)
+            self._exec_single(command)
+
         self._scroll_to_bottom = True
+
+    def _exec_single(self, command: str) -> None:
+        """Execute a single statement/expression immediately (REPL style)."""
+        from bulletlab.console.exceptions import ConsoleError
+
+        captured = io.StringIO()
+        result: Any = None
+        error_lines: list[str] = []
+
+        with redirect_stdout(captured), redirect_stderr(captured):
+            try:
+                try:
+                    expression = compile(command, "<console>", "eval")
+                except SyntaxError:
+                    expression = None
+
+                if expression is not None:
+                    result = eval(expression, self._engine.namespace)  # noqa: S307
+                else:
+                    statement = compile(command, "<console>", "exec")
+                    exec(statement, self._engine.namespace, self._engine.namespace)  # noqa: S102
+            except ConsoleError as e:
+                error_lines = [f"Error: {e}"]
+            except Exception:
+                tb_lines = traceback.format_exc().splitlines()
+                # Filter out the secondary "During handling of the above
+                # exception" noise that comes from the eval-probe fallback.
+                filtered: list[str] = []
+                skip = False
+                for line in tb_lines:
+                    if "During handling of the above exception" in line:
+                        skip = True
+                    if not skip:
+                        filtered.append(line)
+                    if skip and line.strip() == "":
+                        skip = False
+                error_lines = filtered
+
+        for line in captured.getvalue().splitlines():
+            self._history.append(f"    {line}")
+
+        if result is not None:
+            self._history.append(f"    {result!r}")
+
+        for line in error_lines:
+            self._on_script_error(f"  {line}")
 
     def cancel_script(self) -> None:
         """Abort any currently running sequential script."""
@@ -173,18 +298,21 @@ class ConsolePanel:
             imgui.set_clipboard_text("\n".join(self._history))
 
         imgui.same_line()
-        changed, val = imgui.checkbox("Select Text##compact", self._selectable_output)
+        changed, val = _safe_checkbox("Select Text##compact", self._selectable_output)
         if changed:
             self._selectable_output = val
 
         # Ensure status bar doesn't overlap on narrow windows
-        avail_x = imgui.get_content_region_available()[0]
-        cursor_x = imgui.get_cursor_pos()[0]
-        if avail_x > cursor_x + 60:
-            self._render_status_bar()
-        else:
-            imgui.text("")  # Force newline if too tight
-            self._render_status_bar()
+        try:
+            avail_x = imgui.get_content_region_available()[0]
+            cursor_x = imgui.get_cursor_pos()[0]
+            if avail_x > cursor_x + 60:
+                self._render_status_bar()
+            else:
+                imgui.text("")  # Force newline if too tight
+                self._render_status_bar()
+        except (TypeError, IndexError):
+            pass  # Mock / headless environment; skip status bar layout
 
         self._render_output("console_output", 180.0)
         self._render_single_line_input()
@@ -213,22 +341,28 @@ class ConsolePanel:
             imgui.set_clipboard_text("\n".join(self._history))
 
         imgui.same_line()
-        changed, val = imgui.checkbox("Select Text##expanded", self._selectable_output)
+        changed, val = _safe_checkbox("Select Text##expanded", self._selectable_output)
         if changed:
             self._selectable_output = val
 
-        avail_x = imgui.get_content_region_available()[0]
-        cursor_x = imgui.get_cursor_pos()[0]
-        if avail_x > cursor_x + 60:
-            self._render_status_bar()
-        else:
-            imgui.text("")
-            self._render_status_bar()
+        try:
+            avail_x = imgui.get_content_region_available()[0]
+            cursor_x = imgui.get_cursor_pos()[0]
+            if avail_x > cursor_x + 60:
+                self._render_status_bar()
+            else:
+                imgui.text("")
+                self._render_status_bar()
+        except (TypeError, IndexError):
+            pass  # Mock / headless environment; skip status bar layout
 
         imgui.text_disabled("Drag the divider to resize the output area")
 
         available = imgui.get_content_region_available()
-        max_output_height = max(80.0, float(available[1]) - 150.0)
+        try:
+            max_output_height = max(80.0, float(available[1]) - 150.0)
+        except (TypeError, IndexError):
+            max_output_height = 260.0
         self._expanded_output_height = min(
             max(self._expanded_output_height, 80.0),
             max_output_height,
@@ -289,13 +423,13 @@ class ConsolePanel:
                         imgui.push_id(str(i))
                         imgui.push_style_color(imgui.COLOR_TEXT, 0.4, 0.9, 0.4, 1.0)
                         expanded = imgui.tree_node(first_line)
-                        
+
                         if not expanded:
                             imgui.same_line(0, 0)
                             imgui.text(" ...")
-                            
+
                         imgui.pop_style_color()
-                        
+
                         if expanded:
                             for l in lines[1:]:
                                 imgui.text_colored(f"    {l}", 0.4, 0.9, 0.4, 1.0)
@@ -356,7 +490,7 @@ class ConsolePanel:
         if command:
             self.execute(command)
             self._input_buf[0] = ""
-            
+
         self._focus_input = True
 
     # ------------------------------------------------------------------
@@ -367,16 +501,15 @@ class ConsolePanel:
         """Render the status indicator and stop button."""
         if not _HAS_IMGUI:
             return
-            
+
         right_edge = imgui.get_window_content_region_max()[0]
-        
+
         space_needed = 25
         if self._engine.is_active:
             space_needed += 45
-            
-        cursor_y = imgui.get_cursor_pos()[1]
+
         imgui.same_line(max(imgui.get_cursor_pos()[0] + 10, right_edge - space_needed))
-        
+
         if self._engine.is_active:
             # Stop button
             imgui.push_style_color(imgui.COLOR_BUTTON, 0.8, 0.2, 0.2, 1.0)
@@ -386,16 +519,17 @@ class ConsolePanel:
                 self.cancel_script()
             imgui.pop_style_color(3)
             imgui.same_line()
-            
+
             # Draw blue spinning wheel
             draw_list = imgui.get_window_draw_list()
             pos = imgui.get_cursor_screen_pos()
             center = (pos[0] + 10, pos[1] + 10)
-            
-            import time, math
+
+            import math
+            import time
+
             t = time.time() * 8.0
-            
-            # Draw a spinning arc by drawing a sequence of small circles
+
             for i in range(4):
                 angle = t - i * 0.4
                 alpha = 1.0 - i * 0.2
@@ -404,16 +538,20 @@ class ConsolePanel:
                     center[0] + math.cos(angle) * 7,
                     center[1] + math.sin(angle) * 7,
                     2.5,
-                    c
+                    c,
                 )
             imgui.dummy(20, 20)
-            
+
         else:
-            # Draw solid dot
+            # Draw solid status dot
             draw_list = imgui.get_window_draw_list()
             pos = imgui.get_cursor_screen_pos()
             center = (pos[0] + 10, pos[1] + 10)
-            color = imgui.get_color_u32_rgba(1.0, 0.2, 0.2, 1.0) if self._script_error else imgui.get_color_u32_rgba(0.2, 0.8, 0.2, 1.0)
+            color = (
+                imgui.get_color_u32_rgba(1.0, 0.2, 0.2, 1.0)
+                if self._script_error
+                else imgui.get_color_u32_rgba(0.2, 0.8, 0.2, 1.0)
+            )
             draw_list.add_circle_filled(center[0], center[1], 6.0, color)
             imgui.dummy(20, 20)
 

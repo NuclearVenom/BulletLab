@@ -194,7 +194,8 @@ class ConsoleEngine:
         if len(lines) == 1:
             self._on_echo(f">>> {lines[0]}")
         else:
-            self._on_echo(f">>> {lines[0]}\n" + "\n".join(lines[1:]))
+            cont = "\n".join(f"... {l}" for l in lines[1:])
+            self._on_echo(f">>> {lines[0]}\n{cont}")
 
         self._thread = threading.Thread(
             target=self._worker, args=(source, self._run_id), daemon=True
