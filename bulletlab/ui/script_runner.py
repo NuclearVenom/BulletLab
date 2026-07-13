@@ -99,6 +99,11 @@ class ScriptRunner:
     def load(self, source: str) -> bool:
         """Spawn a background thread to execute the given source.
 
+        The script runs against a private sandbox copy of the namespace.
+        On clean (non-cancelled) completion the sandbox is merged back into
+        the live namespace via a ``"merge"`` message processed by ``tick()``.
+        Cancelled runs are silently discarded — no partial state leaks.
+
         Returns True if the source parsed successfully, False on syntax error.
         The previous script (if any) is cancelled first.
         """
@@ -114,8 +119,8 @@ class ScriptRunner:
             return False
 
         self._active = True
-        # Fresh event per run: the old thread keeps its reference to the old
-        # event (which stays set), preventing it from continuing after cancel.
+        # Fresh event per run: the old thread keeps its own reference (set by
+        # cancel()) so it stays cancelled even after this assignment replaces it.
         self._stop_event = threading.Event()
         self._run_id += 1
         run_stop_event = self._stop_event
@@ -127,8 +132,12 @@ class ScriptRunner:
             cont = "\n".join(f"... {l}" for l in lines[1:])
             self._on_echo(f">>> {lines[0]}\n{cont}")
 
+        # Snapshot: the background thread executes against this copy.
+        # Changes only reach self._namespace on clean completion.
+        sandbox_ns = dict(self._namespace)
+
         self._thread = threading.Thread(
-            target=self._worker, args=(source, self._run_id, run_stop_event), daemon=True
+            target=self._worker, args=(source, self._run_id, run_stop_event, sandbox_ns), daemon=True
         )
         self._thread.start()
         return True
@@ -148,11 +157,14 @@ class ScriptRunner:
             run_id, msg_type, content = self._msg_queue.get()
             if run_id != self._run_id:
                 continue
-            
+
             if msg_type == "output":
                 self._on_output(content)
             elif msg_type == "error":
                 self._on_error(content)
+            elif msg_type == "merge":
+                # Normal completion: absorb sandbox changes into live namespace.
+                self._namespace.update(content)
             elif msg_type == "done":
                 self._active = False
                 self._on_done()
@@ -167,11 +179,17 @@ class ScriptRunner:
     # Internal worker
     # ------------------------------------------------------------------
 
-    def _worker(self, source: str, run_id: int, stop_event: threading.Event) -> None:
+    def _worker(
+        self,
+        source: str,
+        run_id: int,
+        stop_event: threading.Event,
+        sandbox_ns: dict[str, Any],
+    ) -> None:
         """Background thread worker for script execution."""
         thread_id = threading.get_ident()
 
-        # Thread-local trace function allows near-instant cancellation 
+        # Thread-local trace function allows near-instant cancellation
         # even if the script is in an infinite loop.
         def tracer(frame: Any, event: str, arg: Any) -> Callable:
             if stop_event.is_set():
@@ -233,12 +251,13 @@ class ScriptRunner:
         sys.stdout = RouterOut()  # type: ignore
         sys.stderr = RouterErr()  # type: ignore
 
+        cancelled = False
         try:
             code = compile(source, "<console>", "exec")
-            exec(code, self._namespace, self._namespace)  # noqa: S102
+            exec(code, sandbox_ns, sandbox_ns)  # noqa: S102
         except SystemExit:
             # Silently exit; the UI will print '# [Script cancelled]'
-            pass
+            cancelled = True
         except Exception:
             for line in traceback.format_exc().splitlines():
                 self._msg_queue.put((run_id, "error", f"  {line}"))
@@ -252,6 +271,12 @@ class ScriptRunner:
 
             sys.stdout = orig_stdout
             sys.stderr = orig_stderr
+
+            if not cancelled:
+                # Merge sandbox changes back into the live namespace.
+                # Skipped on cancellation so no partial state leaks.
+                self._msg_queue.put((run_id, "merge", sandbox_ns))
+
             self._msg_queue.put((run_id, "done", None))
 
     # ------------------------------------------------------------------
@@ -259,13 +284,21 @@ class ScriptRunner:
     # ------------------------------------------------------------------
 
     def make_builtins(self) -> dict[str, Any]:
-        """Return the special built-in commands to inject into the namespace."""
-        
+        """Return the special built-in commands to inject into the namespace.
+
+        Captures the **current** stop event at call time so each run's
+        builtins remain cancellable even after ``self._stop_event`` is
+        replaced by a subsequent ``load()`` call.
+        """
+        # Capture the per-run stop event so wait()/step() always check the
+        # right event even if self._stop_event is later replaced.
+        run_stop_event = self._stop_event
+
         def wait(ms: int | float = 0) -> None:
             """Pause script execution for *ms* milliseconds."""
             end_time = time.monotonic() + (ms / 1000.0)
             while time.monotonic() < end_time:
-                if self._stop_event.is_set():
+                if run_stop_event.is_set():
                     raise SystemExit("Script cancelled")
                 time.sleep(0.01)
 
@@ -275,7 +308,7 @@ class ScriptRunner:
             ack_event = threading.Event()
             self._msg_queue.put((self._run_id, "step", (n, ack_event)))
             while not ack_event.is_set():
-                if self._stop_event.is_set():
+                if run_stop_event.is_set():
                     raise SystemExit("Script cancelled")
                 ack_event.wait(timeout=0.01)
 

@@ -41,6 +41,15 @@ class ConsoleEngine:
     to push UI updates (output/errors) back to the main thread's simulation loop.
     This also dynamically builds proxy objects for registered commands so they
     can be called via dot-notation (e.g., sim.start()).
+
+    Cancellation guarantee
+    ----------------------
+    Each background run executes against a **private sandbox copy** of the
+    namespace.  When the run completes normally, its changes are merged back
+    into the live namespace via a "merge" message processed on the next
+    ``tick()`` call.  When a run is cancelled, the sandbox copy is discarded —
+    so cancelled scripts **never** leave partial state in the live namespace,
+    regardless of how far the script had advanced before cancellation.
     """
 
     def __init__(
@@ -67,25 +76,25 @@ class ConsoleEngine:
         self._msg_queue: queue.Queue = queue.Queue()
         self._active: bool = False
         self._run_id: int = 0
-        
+
         self.rebuild_namespace()
 
     @property
     def namespace(self) -> dict[str, Any]:
         return self._namespace
-        
+
     def rebuild_namespace(self) -> None:
         """Rebuilds the execution namespace from the global registry."""
         import builtins
-        
+
         # Start fresh
         self._namespace.clear()
         self._namespace["__builtins__"] = builtins
-        
+
         # Populate from registry
         for name, meta in registry.get_all().items():
             parts = name.split('.')
-            
+
             if len(parts) == 1:
                 # Top level command (e.g., wait, load, gravity)
                 self._namespace[name] = meta.func
@@ -104,7 +113,7 @@ class ConsoleEngine:
 
     def execute(self, command: str) -> None:
         """Execute a Python command string.
-        
+
         Single-statement commands (including expressions) are executed
         immediately (REPL style). Multi-statement scripts are handed to
         the sequential runner for frame-by-frame execution.
@@ -130,7 +139,7 @@ class ConsoleEngine:
         if not is_multi and len(tree.body) == 1:
             node = tree.body[0]
             if isinstance(
-                node, 
+                node,
                 (ast.For, ast.While, ast.If, ast.With, ast.FunctionDef, ast.ClassDef, ast.Try)
             ):
                 is_multi = True
@@ -146,11 +155,11 @@ class ConsoleEngine:
         import io
         from contextlib import redirect_stdout, redirect_stderr
         from bulletlab.console.exceptions import ConsoleError
-        
+
         captured = io.StringIO()
         result: Any = None
         error_lines: list[str] = []
-        
+
         with redirect_stdout(captured), redirect_stderr(captured):
             try:
                 try:
@@ -171,10 +180,10 @@ class ConsoleEngine:
 
         for line in captured.getvalue().splitlines():
             self._on_output(f"    {line}")
-            
+
         if result is not None:
             self._on_output(f"    {result!r}")
-            
+
         for line in error_lines:
             self._on_error(f"  {line}")
 
@@ -184,7 +193,13 @@ class ConsoleEngine:
         return self._active
 
     def load(self, source: str) -> bool:
-        """Spawn a background thread to execute the given source."""
+        """Spawn a background thread to execute the given source.
+
+        The script runs against a **private sandbox copy** of the current
+        namespace.  On clean completion the sandbox is merged back into the
+        live namespace via the message queue.  If the run is cancelled first
+        the sandbox is discarded — guaranteeing no partial side-effects.
+        """
         self.cancel()
         source = source.strip()
         if not source:
@@ -197,9 +212,8 @@ class ConsoleEngine:
             return False
 
         self._active = True
-        # Create a fresh stop event for this run so that clearing it for the
-        # new run does not accidentally re-enable a thread from the previous
-        # run that is still sleeping (e.g. inside time.sleep()).
+        # Fresh event per run: the old thread keeps its own reference (set
+        # by cancel()), so it stays cancelled even after this replaces it.
         self._stop_event = threading.Event()
         self._run_id += 1
         run_stop_event = self._stop_event
@@ -211,8 +225,15 @@ class ConsoleEngine:
             cont = "\n".join(f"... {l}" for l in lines[1:])
             self._on_echo(f">>> {lines[0]}\n{cont}")
 
+        # Snapshot the namespace so this run starts with current state.
+        # Writes go into the sandbox; they only reach self._namespace on
+        # clean completion (handled by the "merge" message in tick()).
+        sandbox_ns = dict(self._namespace)
+
         self._thread = threading.Thread(
-            target=self._worker, args=(source, self._run_id, run_stop_event), daemon=True
+            target=self._worker,
+            args=(source, self._run_id, run_stop_event, sandbox_ns),
+            daemon=True,
         )
         self._thread.start()
         return True
@@ -229,11 +250,14 @@ class ConsoleEngine:
             run_id, msg_type, content = self._msg_queue.get()
             if run_id != self._run_id:
                 continue
-            
+
             if msg_type == "output":
                 self._on_output(content)
             elif msg_type == "error":
                 self._on_error(content)
+            elif msg_type == "merge":
+                # Normal completion: absorb sandbox changes into live namespace.
+                self._namespace.update(content)
             elif msg_type == "done":
                 self._active = False
                 self._on_done()
@@ -244,7 +268,13 @@ class ConsoleEngine:
                         self._sim.step()
                 ack_event.set()
 
-    def _worker(self, source: str, run_id: int, stop_event: threading.Event) -> None:
+    def _worker(
+        self,
+        source: str,
+        run_id: int,
+        stop_event: threading.Event,
+        sandbox_ns: dict[str, Any],
+    ) -> None:
         """Background thread worker for script execution."""
         thread_id = threading.get_ident()
         # Store the per-run stop event in thread-local so utility commands
@@ -310,11 +340,12 @@ class ConsoleEngine:
         sys.stdout = RouterOut()  # type: ignore
         sys.stderr = RouterErr()  # type: ignore
 
+        cancelled = False
         try:
             code = compile(source, "<console>", "exec")
-            exec(code, self._namespace, self._namespace)  # noqa: S102
+            exec(code, sandbox_ns, sandbox_ns)  # noqa: S102
         except SystemExit:
-            pass
+            cancelled = True
         except Exception:
             for line in traceback.format_exc().splitlines():
                 self._msg_queue.put((run_id, "error", f"  {line}"))
@@ -328,4 +359,10 @@ class ConsoleEngine:
 
             sys.stdout = orig_stdout
             sys.stderr = orig_stderr
+
+            if not cancelled:
+                # Merge sandbox changes back into the live namespace.
+                # Skipped on cancellation so partial state is never visible.
+                self._msg_queue.put((run_id, "merge", sandbox_ns))
+
             self._msg_queue.put((run_id, "done", None))
