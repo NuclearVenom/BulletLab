@@ -40,7 +40,7 @@ from bulletlab.utils.math_utils import (
 from bulletlab.arsenal.exceptions import ArsenalError
 from bulletlab.console.decorators import command
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 __author__ = "Ranasurya Ghosh"
 __url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"
