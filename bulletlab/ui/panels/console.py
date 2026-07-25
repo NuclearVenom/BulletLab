@@ -55,10 +55,9 @@ from typing import Any
 from bulletlab.console import ConsoleEngine
 
 try:
-    import imgui
-
+    from imgui_bundle import imgui
     _HAS_IMGUI = True
-except ImportError:  # pragma: no cover
+except ImportError:
     imgui = None  # type: ignore[assignment]
     _HAS_IMGUI = False
 
@@ -120,10 +119,18 @@ class ConsolePanel:
 
         if namespace is not None:
             # Merge engine builtins (wait, step, proxy objects, etc.) INTO the
-            # caller's dict so that exec() results are visible on the original
-            # object the caller holds.  Then point the engine at that dict.
-            namespace.update(self._engine.namespace)  # builtins → user dict
-            self._engine._namespace = namespace        # engine uses same object
+            # caller's dict. If the caller provided an object (like 'robot') that
+            # collides with a ProxyObject, attach the proxy's commands to the
+            # caller's object without overwriting it.
+            from bulletlab.console.engine import ProxyObject
+            for k, v in self._engine.namespace.items():
+                if k in namespace and isinstance(v, ProxyObject):
+                    for attr in dir(v):
+                        if not attr.startswith("_") and not hasattr(namespace[k], attr):
+                            setattr(namespace[k], attr, getattr(v, attr))
+                elif k not in namespace:
+                    namespace[k] = v
+            self._engine._namespace = namespace
 
         self._script_error: bool = False
         self._selectable_output: bool = False
@@ -304,8 +311,8 @@ class ConsolePanel:
 
         # Ensure status bar doesn't overlap on narrow windows
         try:
-            avail_x = imgui.get_content_region_available()[0]
-            cursor_x = imgui.get_cursor_pos()[0]
+            avail_x = imgui.get_content_region_avail().x
+            cursor_x = imgui.get_cursor_pos().x
             if avail_x > cursor_x + 60:
                 self._render_status_bar()
             else:
@@ -346,8 +353,8 @@ class ConsolePanel:
             self._selectable_output = val
 
         try:
-            avail_x = imgui.get_content_region_available()[0]
-            cursor_x = imgui.get_cursor_pos()[0]
+            avail_x = imgui.get_content_region_avail().x
+            cursor_x = imgui.get_cursor_pos().x
             if avail_x > cursor_x + 60:
                 self._render_status_bar()
             else:
@@ -358,9 +365,9 @@ class ConsolePanel:
 
         imgui.text_disabled("Drag the divider to resize the output area")
 
-        available = imgui.get_content_region_available()
+        available = imgui.get_content_region_avail()
         try:
-            max_output_height = max(80.0, float(available[1]) - 150.0)
+            max_output_height = max(80.0, float(available.y) - 150.0)
         except (TypeError, IndexError):
             max_output_height = 260.0
         self._expanded_output_height = min(
@@ -376,7 +383,7 @@ class ConsolePanel:
 
         editor_height = max(
             90.0,
-            float(imgui.get_content_region_available()[1]) - 34.0,
+            float(imgui.get_content_region_avail().y) - 34.0,
         )
         if self._focus_input:
             imgui.set_keyboard_focus_here()
@@ -385,10 +392,8 @@ class ConsolePanel:
         changed, new_text = imgui.input_text_multiline(
             "##console_multiline_input",
             self._input_buf[0],
-            16384,
-            width=-1,
-            height=editor_height,
-            flags=imgui.INPUT_TEXT_ALLOW_TAB_INPUT,
+            imgui.ImVec2(-1, editor_height),
+            flags=imgui.InputTextFlags_.allow_tab_input,
         )
         self._input_buf[0] = new_text
 
@@ -399,9 +404,8 @@ class ConsolePanel:
         """Render the shared scrollable command history."""
         imgui.begin_child(
             child_id,
-            width=0,
-            height=height,
-            border=True,
+            imgui.ImVec2(0, height),
+            child_flags=imgui.ChildFlags_.borders,
         )
 
         if self._selectable_output:
@@ -409,10 +413,8 @@ class ConsolePanel:
             imgui.input_text_multiline(
                 "##console_selectable_output",
                 full_text,
-                max(256, len(full_text) + 1),
-                width=-1,
-                height=-1,
-                flags=imgui.INPUT_TEXT_READ_ONLY,
+                imgui.ImVec2(-1, -1),
+                flags=imgui.InputTextFlags_.read_only,
             )
         else:
             for i, line in enumerate(self._history):
@@ -421,7 +423,7 @@ class ConsolePanel:
                         lines = line.split("\n")
                         first_line = lines[0]
                         imgui.push_id(str(i))
-                        imgui.push_style_color(imgui.COLOR_TEXT, 0.4, 0.9, 0.4, 1.0)
+                        imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(0.4, 0.9, 0.4, 1.0))
                         expanded = imgui.tree_node(first_line)
 
                         if not expanded:
@@ -432,15 +434,15 @@ class ConsolePanel:
 
                         if expanded:
                             for l in lines[1:]:
-                                imgui.text_colored(f"    {l}", 0.4, 0.9, 0.4, 1.0)
+                                imgui.text_colored(imgui.ImVec4(0.4, 0.9, 0.4, 1.0), f"    {l}")
                             imgui.tree_pop()
                         imgui.pop_id()
                     else:
-                        imgui.text_colored(line, 0.4, 0.9, 0.4, 1.0)
+                        imgui.text_colored(imgui.ImVec4(0.4, 0.9, 0.4, 1.0), line)
                 elif line.startswith("  Traceback") or "Error" in line:
-                    imgui.text_colored(line, 1.0, 0.3, 0.3, 1.0)
+                    imgui.text_colored(imgui.ImVec4(1.0, 0.3, 0.3, 1.0), line)
                 elif line.startswith("#"):
-                    imgui.text_colored(line, 0.6, 0.6, 1.0, 1.0)
+                    imgui.text_colored(imgui.ImVec4(0.5, 0.5, 0.5, 1.0), line)
                 else:
                     imgui.text(line)
 
@@ -452,7 +454,7 @@ class ConsolePanel:
 
     def _render_single_line_input(self) -> None:
         """Render the compact one-line command editor."""
-        avail_w = imgui.get_content_region_available()[0]
+        avail_w = imgui.get_content_region_avail().x
         run_btn_w = 50
         imgui.push_item_width(avail_w - run_btn_w - 8)
         if self._focus_input:
@@ -462,21 +464,20 @@ class ConsolePanel:
         submitted, new_text = imgui.input_text(
             "##console_input",
             self._input_buf[0],
-            16384,
-            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE,
+            flags=imgui.InputTextFlags_.enter_returns_true,
         )
         self._input_buf[0] = new_text
 
         imgui.pop_item_width()
         imgui.same_line()
 
-        if imgui.button("Run##console_run", width=run_btn_w) or submitted:
+        if imgui.button("Run##console_run", size=imgui.ImVec2(run_btn_w, 0)) or submitted:
             self._submit_input()
 
     def _render_splitter(self, max_output_height: float) -> None:
         """Render the draggable divider below the expanded output log."""
-        width = max(1.0, float(imgui.get_content_region_available()[0]))
-        imgui.button("##console_output_splitter", width=width, height=7.0)
+        width = max(1.0, float(imgui.get_content_region_avail().x))
+        imgui.button("##console_output_splitter", size=imgui.ImVec2(width, 7.0))
         if imgui.is_item_active():
             mouse_delta = imgui.get_io().mouse_delta
             self._expanded_output_height = min(
@@ -502,19 +503,19 @@ class ConsolePanel:
         if not _HAS_IMGUI:
             return
 
-        right_edge = imgui.get_window_content_region_max()[0]
+        right_edge = imgui.get_cursor_pos().x + imgui.get_content_region_avail().x
 
         space_needed = 25
         if self._engine.is_active:
             space_needed += 45
 
-        imgui.same_line(max(imgui.get_cursor_pos()[0] + 10, right_edge - space_needed))
+        imgui.same_line(0, max(imgui.get_cursor_pos().x + 10, right_edge - space_needed) - imgui.get_cursor_pos().x)
 
         if self._engine.is_active:
             # Stop button
-            imgui.push_style_color(imgui.COLOR_BUTTON, 0.8, 0.2, 0.2, 1.0)
-            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.9, 0.3, 0.3, 1.0)
-            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 0.4, 0.4, 1.0)
+            imgui.push_style_color(imgui.Col_.button, imgui.ImVec4(0.8, 0.2, 0.2, 1.0))
+            imgui.push_style_color(imgui.Col_.button_hovered, imgui.ImVec4(0.9, 0.3, 0.3, 1.0))
+            imgui.push_style_color(imgui.Col_.button_active, imgui.ImVec4(1.0, 0.4, 0.4, 1.0))
             if imgui.button("Stop##stop_script"):
                 self.cancel_script()
             imgui.pop_style_color(3)
@@ -533,10 +534,9 @@ class ConsolePanel:
             for i in range(4):
                 angle = t - i * 0.4
                 alpha = 1.0 - i * 0.2
-                c = imgui.get_color_u32_rgba(0.2, 0.6, 1.0, alpha)
+                c = imgui.get_color_u32(imgui.ImVec4(0.2, 0.6, 1.0, alpha))
                 draw_list.add_circle_filled(
-                    center[0] + math.cos(angle) * 7,
-                    center[1] + math.sin(angle) * 7,
+                    imgui.ImVec2(center[0] + math.cos(angle) * 7, center[1] + math.sin(angle) * 7),
                     2.5,
                     c,
                 )
@@ -546,13 +546,13 @@ class ConsolePanel:
             # Draw solid status dot
             draw_list = imgui.get_window_draw_list()
             pos = imgui.get_cursor_screen_pos()
-            center = (pos[0] + 10, pos[1] + 10)
+            center = (pos.x + 10, pos.y + 10)
             color = (
-                imgui.get_color_u32_rgba(1.0, 0.2, 0.2, 1.0)
+                imgui.get_color_u32(imgui.ImVec4(1.0, 0.2, 0.2, 1.0))
                 if self._script_error
-                else imgui.get_color_u32_rgba(0.2, 0.8, 0.2, 1.0)
+                else imgui.get_color_u32(imgui.ImVec4(0.2, 0.8, 0.2, 1.0))
             )
-            draw_list.add_circle_filled(center[0], center[1], 6.0, color)
+            draw_list.add_circle_filled(imgui.ImVec2(center[0], center[1]), 6.0, color)
             imgui.dummy(20, 20)
 
     def _on_script_error(self, line: str) -> None:

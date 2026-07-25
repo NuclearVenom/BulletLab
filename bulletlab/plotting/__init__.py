@@ -1,7 +1,7 @@
 """
 BulletLab plotting subpackage.
 
-Provides LivePlot for real-time data visualization using PyQtGraph.
+Provides LivePlot for real-time data visualization using ImPlot.
 """
 
 from bulletlab.plotting.live_plot import LivePlot

@@ -85,7 +85,7 @@ robot.links['wheel_link'].lateral_friction = 1.2
 ```
 
 ## 7. Attaching the BulletLab UI
-Add a complete ImGui dashboard with an Explorer, Properties panel, and Console with just two lines of code.
+Add a complete Dear ImGui dashboard with an Explorer, Properties panel, and Console with just two lines of code.
 
 ```python
 from bulletlab.ui import BulletLabUI

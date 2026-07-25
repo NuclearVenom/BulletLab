@@ -24,11 +24,12 @@ from __future__ import annotations
 from typing import Any, Callable
 
 # ImGui is optional — graceful fallback
+# Stage 2: use imgui-bundle via the compat shim so that all widget calls
+# hit the same context that app.py's render loop uses.
 try:
-    import imgui
-
+    from imgui_bundle import imgui
     _HAS_IMGUI = True
-except ImportError:  # pragma: no cover
+except ImportError:
     imgui = None  # type: ignore[assignment]
     _HAS_IMGUI = False
 
@@ -146,8 +147,8 @@ def slider(
     current = float(getter()) if callable(getter) else float(getter)
     
     if highlight:
-        imgui.push_style_color(imgui.COLOR_SLIDER_GRAB, 0.9, 0.2, 0.2, 1.0)
-        imgui.push_style_color(imgui.COLOR_SLIDER_GRAB_ACTIVE, 1.0, 0.3, 0.3, 1.0)
+        imgui.push_style_color(imgui.Col_.slider_grab, imgui.ImVec4(0.9, 0.2, 0.2, 1.0))
+        imgui.push_style_color(imgui.Col_.slider_grab_active, imgui.ImVec4(1.0, 0.3, 0.3, 1.0))
         
     changed, new_val = imgui.slider_float(label, current, min_val, max_val, fmt)
     
@@ -335,8 +336,10 @@ def collapsing_header(label: str, default_open: bool = True) -> bool:
     """
     if not _check_imgui():
         return True
-    flags = imgui.TREE_NODE_DEFAULT_OPEN if default_open else 0
-    return imgui.collapsing_header(label, flags=flags)
+    flags = imgui.TreeNodeFlags_.default_open if default_open else 0
+    result = imgui.collapsing_header(label, flags=flags)
+    # compat wrapper returns (expanded, visible); plain imgui-bundle also returns bool
+    return bool(result[0]) if isinstance(result, tuple) else bool(result)
 
 
 def tooltip(text_str: str) -> None:
@@ -415,8 +418,9 @@ def toggle_switch(
     padding  = 2.0
 
     # ── Invisible hit-box (covers just the capsule) ───────────────────────────
-    cursor_x, cursor_y = imgui.get_cursor_screen_pos()
-    imgui.invisible_button(f"##tgsw_{label}", float(width), float(height))
+    _pos = imgui.get_cursor_screen_pos()
+    cursor_x, cursor_y = _pos.x, _pos.y
+    imgui.invisible_button(f"##tgsw_{label}", imgui.ImVec2(float(width), float(height)))
     clicked = imgui.is_item_clicked(0)
 
     new_val = current
@@ -433,27 +437,27 @@ def toggle_switch(
     if not new_val:
         bg_r, bg_g, bg_b = bg_r * 0.8, bg_g * 0.8, bg_b * 0.8
 
-    bg_col = imgui.get_color_u32_rgba(bg_r, bg_g, bg_b, bg_a)
+    bg_col = imgui.get_color_u32(imgui.ImVec4(bg_r, bg_g, bg_b, bg_a))
     x0 = cursor_x
     y0 = cursor_y
     x1 = cursor_x + width
     y1 = cursor_y + height
-    draw.add_rect_filled(x0, y0, x1, y1, bg_col, radius)
+    draw.add_rect_filled(imgui.ImVec2(x0, y0), imgui.ImVec2(x1, y1), bg_col, radius)
 
     # Subtle border
     border_alpha = 0.6 if new_val else 0.3
-    border_col = imgui.get_color_u32_rgba(1.0, 1.0, 1.0, border_alpha)
-    draw.add_rect(x0, y0, x1, y1, border_col, radius, 0, 1.0)
+    border_col = imgui.get_color_u32(imgui.ImVec4(1.0, 1.0, 1.0, border_alpha))
+    draw.add_rect(imgui.ImVec2(x0, y0), imgui.ImVec2(x1, y1), border_col, rounding=radius)
 
     # ── Draw sliding circle ───────────────────────────────────────────────────
     handle_x = (cursor_x + width - radius - padding) if new_val \
                else (cursor_x + radius + padding)
     handle_y = cursor_y + radius
-    handle_col = imgui.get_color_u32_rgba(1.0, 1.0, 1.0, 1.0)
-    shadow_col = imgui.get_color_u32_rgba(0.0, 0.0, 0.0, 0.25)
+    handle_col = imgui.get_color_u32(imgui.ImVec4(1.0, 1.0, 1.0, 1.0))
+    shadow_col = imgui.get_color_u32(imgui.ImVec4(0.0, 0.0, 0.0, 0.25))
     # Tiny shadow
-    draw.add_circle_filled(handle_x + 1, handle_y + 1, handle_r, shadow_col, 20)
-    draw.add_circle_filled(handle_x, handle_y, handle_r, handle_col, 20)
+    draw.add_circle_filled(imgui.ImVec2(handle_x + 1, handle_y + 1), handle_r, shadow_col, 20)
+    draw.add_circle_filled(imgui.ImVec2(handle_x, handle_y), handle_r, handle_col, 20)
 
     # ── Label to the right ────────────────────────────────────────────────────
     imgui.same_line()
@@ -554,8 +558,9 @@ def joystick(
 
     # ── Invisible interaction button (full bounding box) ─────────────────────
     btn_size = (size * 2 + 4, size * 2 + 4)
-    cursor_x, cursor_y = imgui.get_cursor_screen_pos()
-    imgui.invisible_button(f"##jstk_{label}", btn_size[0], btn_size[1])
+    _pos = imgui.get_cursor_screen_pos()
+    cursor_x, cursor_y = _pos.x, _pos.y
+    imgui.invisible_button(f"##jstk_{label}", imgui.ImVec2(float(btn_size[0]), float(btn_size[1])))
 
     is_active  = imgui.is_item_active()
     is_hovered = imgui.is_item_hovered()
@@ -600,28 +605,28 @@ def joystick(
     draw = imgui.get_window_draw_list()
 
     # Outer ring background
-    ring_bg_col = imgui.get_color_u32_rgba(0.15, 0.15, 0.15, 0.85) if not is_hovered \
-                  else imgui.get_color_u32_rgba(0.2,  0.2,  0.2,  0.9)
-    draw.add_circle_filled(center_x, center_y, float(size), ring_bg_col, 64)
+    ring_bg_col = imgui.get_color_u32(imgui.ImVec4(0.15, 0.15, 0.15, 0.85)) if not is_hovered \
+                  else imgui.get_color_u32(imgui.ImVec4(0.2,  0.2,  0.2,  0.9))
+    draw.add_circle_filled(imgui.ImVec2(center_x, center_y), float(size), ring_bg_col, 64)
 
     # Outer ring border
-    border_col = imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.7) if not is_active \
-                 else imgui.get_color_u32_rgba(0.8, 0.8, 0.8, 1.0)
-    draw.add_circle(center_x, center_y, float(size), border_col, 64, 2.0)
+    border_col = imgui.get_color_u32(imgui.ImVec4(0.5, 0.5, 0.5, 0.7)) if not is_active \
+                 else imgui.get_color_u32(imgui.ImVec4(0.8, 0.8, 0.8, 1.0))
+    draw.add_circle(imgui.ImVec2(center_x, center_y), float(size), border_col, 64, 2.0)
 
     # Cross-hair lines (subtle guide)
-    guide_col = imgui.get_color_u32_rgba(0.4, 0.4, 0.4, 0.4)
-    draw.add_line(center_x - size + 4, center_y, center_x + size - 4, center_y, guide_col, 1.0)
-    draw.add_line(center_x, center_y - size + 4, center_x, center_y + size - 4, guide_col, 1.0)
+    guide_col = imgui.get_color_u32(imgui.ImVec4(0.4, 0.4, 0.4, 0.4))
+    draw.add_line(imgui.ImVec2(center_x - size + 4, center_y), imgui.ImVec2(center_x + size - 4, center_y), guide_col, 1.0)
+    draw.add_line(imgui.ImVec2(center_x, center_y - size + 4), imgui.ImVec2(center_x, center_y + size - 4), guide_col, 1.0)
 
     # Handle
     hx = center_x + state[0]
     hy = center_y + state[1]
     r, g, b, a = handle_color
-    h_col      = imgui.get_color_u32_rgba(r, g, b, a)
-    h_col_dark = imgui.get_color_u32_rgba(r * 0.6, g * 0.6, b * 0.6, a)
-    draw.add_circle_filled(hx, hy, float(handle_r), h_col, 32)
-    draw.add_circle(hx, hy, float(handle_r), h_col_dark, 32, 1.5)
+    h_col      = imgui.get_color_u32(imgui.ImVec4(r, g, b, a))
+    h_col_dark = imgui.get_color_u32(imgui.ImVec4(r * 0.6, g * 0.6, b * 0.6, a))
+    draw.add_circle_filled(imgui.ImVec2(hx, hy), float(handle_r), h_col, 32)
+    draw.add_circle(imgui.ImVec2(hx, hy), float(handle_r), h_col_dark, 32, 1.5)
 
     return (norm_x, norm_y)
 

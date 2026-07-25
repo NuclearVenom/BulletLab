@@ -121,9 +121,7 @@ def main() -> None:
     manual_vel = [0.0, 0.0]    # [left_vel, right_vel]
 
     try:
-        from bulletlab.ui import BulletLabUI
-        from bulletlab.ui import widgets as ui_widgets
-        import imgui
+        from bulletlab.ui import BulletLabUI, widgets as ui_widgets, imgui
 
         ui = BulletLabUI(
             sim=sim,

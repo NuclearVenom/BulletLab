@@ -10,7 +10,7 @@ BulletLab is designed around a **two-window, shared-state** architecture.
 │                                                              │
 │  ┌─────────────────┐    Python objects    ┌───────────────┐ │
 │  │ PyBullet Server │ ←──────────────────→ │ BulletLabUI   │ │
-│  │ (physics + 3D)  │    Robot, Joint,     │ (ImGui window)│ │
+│  │ (physics + 3D)  │    Robot, Joint,     │ (Dear ImGui)  │ │
 │  └─────────────────┘    Link, Sim         └───────────────┘ │
 │         ↑                                         ↑          │
 │   pybullet.so                               GLFW + OpenGL   │
@@ -40,12 +40,12 @@ bulletlab/
 │   └── json_writer.py   ← stdlib only
 │
 ├── plotting/
-│   └── live_plot.py     ← depends on pyqtgraph (optional)
+│   └── live_plot.py     ← uses imgui-bundle ImPlot (standalone window)
 │
 ├── ui/
-│   ├── app.py           ← depends on all panels, imgui, glfw
+│   ├── app.py           ← depends on all panels, imgui-bundle, glfw
 │   ├── script_runner.py ← stdlib only (ast, time)
-│   ├── widgets.py       ← depends on imgui (optional)
+│   ├── widgets.py       ← depends on imgui-bundle (optional)
 │   └── panels/
 │       ├── explorer.py  ← depends on robot types
 │       ├── properties.py← depends on robot types
@@ -73,9 +73,8 @@ robot.links["wheel"].mass = 5.0
 
 ### 3. Optional Dependencies
 All UI and plotting dependencies are optional. BulletLab degrades gracefully:
-- No ImGui → UI panels are no-ops
-- No PyQtGraph → LivePlot prints a warning and does nothing
-- No GLFW → BulletLabUI prints a message and returns
+- No imgui-bundle → Headless mode (API still functions, UI ignores calls)
+- No glfw → Headless mode
 
 ### 4. Separation of Concerns
 - PyBullet handles **physics + 3D rendering**

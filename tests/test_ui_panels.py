@@ -3,6 +3,45 @@
 import pytest
 
 
+class _NoOpProxy:
+    """Recursive proxy that absorbs any attribute access and any call.
+
+    Useful as a catch-all in FakeImgui mocks so that chains like
+    ``imgui.ChildFlags_.borders`` or ``imgui.ImVec2(0, 0).x`` work
+    without manually stubbing every enum / struct.
+    """
+
+    def __getattr__(self, name):
+        return _NoOpProxy()
+
+    def __call__(self, *args, **kwargs):
+        return _NoOpProxy()
+
+    # Make it usable in arithmetic / comparisons / bool contexts
+    def __int__(self):
+        return 0
+
+    def __float__(self):
+        return 0.0
+
+    def __bool__(self):
+        return False
+
+    def __index__(self):
+        return 0
+
+    # Subscript access (e.g. pos[0])
+    def __getitem__(self, key):
+        return 0.0
+
+    # Iteration (e.g. for unpacking)
+    def __iter__(self):
+        return iter([0.0, 0.0])
+
+    def __repr__(self):
+        return "_NoOpProxy()"
+
+
 class TestExplorerPanel:
     def test_construct(self, sim):
         from bulletlab.ui.panels.explorer import ExplorerPanel
@@ -169,8 +208,13 @@ class TestConsolePanel:
                 self.focus_calls = 0
 
             def __getattr__(self, name):
-                if name == "get_content_region_available":
-                    return lambda: (300, 300)
+                if name in ("get_content_region_available", "get_content_region_avail"):
+                    return lambda: type("ImVec2", (), {"x": 300.0, "y": 300.0})()
+                if name in ("get_cursor_pos", "get_cursor_screen_pos"):
+                    return lambda: type("ImVec2", (), {"x": 0.0, "y": 0.0})()
+                if name == "get_window_draw_list":
+                    _dl = type("DrawList", (), {"__getattr__": lambda s, n: (lambda *a, **k: None)})() 
+                    return lambda: _dl
                 if name == "input_text":
                     return lambda *args, **kwargs: (submit_with_enter, "x = 42")
                 if name == "button":
@@ -179,7 +223,7 @@ class TestConsolePanel:
                     )
                 if name == "set_keyboard_focus_here":
                     return self._set_focus
-                return lambda *args, **kwargs: None
+                return _NoOpProxy()
 
             def _set_focus(self):
                 self.focus_calls += 1
@@ -205,8 +249,13 @@ class TestConsolePanel:
             INPUT_TEXT_ALLOW_TAB_INPUT = 2
 
             def __getattr__(self, name):
-                if name == "get_content_region_available":
-                    return lambda: (600, 500)
+                if name in ("get_content_region_available", "get_content_region_avail"):
+                    return lambda: type("ImVec2", (), {"x": 600.0, "y": 500.0})()
+                if name in ("get_cursor_pos", "get_cursor_screen_pos"):
+                    return lambda: type("ImVec2", (), {"x": 0.0, "y": 0.0})()
+                if name == "get_window_draw_list":
+                    _dl = type("DrawList", (), {"__getattr__": lambda s, n: (lambda *a, **k: None)})()
+                    return lambda: _dl
                 if name == "input_text_multiline":
                     return lambda *args, **kwargs: (
                         True,
@@ -218,7 +267,7 @@ class TestConsolePanel:
                     return lambda: True
                 if name == "get_io":
                     return lambda: type("IO", (), {"mouse_delta": (0, 25)})()
-                return lambda *args, **kwargs: None
+                return _NoOpProxy()
 
         monkeypatch.setattr(con_mod, "imgui", FakeImgui())
         monkeypatch.setattr(con_mod, "_HAS_IMGUI", True)
@@ -249,11 +298,16 @@ class TestConsolePanel:
                 pass
 
             def __getattr__(self, name):
-                if name == "get_content_region_available":
-                    return lambda: (300, 300)
+                if name in ("get_content_region_available", "get_content_region_avail"):
+                    return lambda: type("ImVec2", (), {"x": 300.0, "y": 300.0})()
+                if name in ("get_cursor_pos", "get_cursor_screen_pos"):
+                    return lambda: type("ImVec2", (), {"x": 0.0, "y": 0.0})()
+                if name == "get_window_draw_list":
+                    _dl = type("DrawList", (), {"__getattr__": lambda s, n: (lambda *a, **k: None)})()
+                    return lambda: _dl
                 if name == "input_text":
                     return lambda *args, **kwargs: (False, "")
-                return lambda *args, **kwargs: None
+                return _NoOpProxy()
 
         monkeypatch.setattr(con_mod, "imgui", FakeImgui())
         monkeypatch.setattr(con_mod, "_HAS_IMGUI", True)
@@ -369,89 +423,3 @@ class TestBulletLabUIConstruction:
         from bulletlab.ui.app import BulletLabUI
         app = BulletLabUI(sim=sim)
         assert not app.should_close
-
-    def test_expanded_console_uses_separate_glfw_window(self, sim, monkeypatch):
-        from bulletlab.ui import app as app_mod
-        from bulletlab.ui.app import BulletLabUI
-
-        main_window = object()
-        console_window = object()
-        main_context = object()
-        console_context = object()
-        created_windows = []
-        destroyed_windows = []
-        current_contexts = []
-        renderer_contexts = []
-
-        class FakeGlfw:
-            @staticmethod
-            def create_window(width, height, title, monitor, share):
-                created_windows.append((width, height, title, monitor, share))
-                return console_window
-
-            @staticmethod
-            def get_window_pos(window):
-                return (10, 20)
-
-            @staticmethod
-            def set_window_pos(*args):
-                pass
-
-            @staticmethod
-            def make_context_current(*args):
-                pass
-
-            @staticmethod
-            def swap_interval(*args):
-                pass
-
-            @staticmethod
-            def set_char_callback(*args):
-                pass
-
-            @staticmethod
-            def destroy_window(window):
-                destroyed_windows.append(window)
-
-        class FakeImgui:
-            @staticmethod
-            def create_context():
-                return console_context
-
-            @staticmethod
-            def set_current_context(context):
-                current_contexts.append(context)
-
-            @staticmethod
-            def destroy_context(*args):
-                pass
-
-        renderer = type("Renderer", (), {"shutdown": lambda self: None})()
-
-        def create_renderer(window):
-            renderer_contexts.append(current_contexts[-1])
-            return renderer
-
-        fake_backend = type(
-            "Backend",
-            (),
-            {"GlfwRenderer": staticmethod(create_renderer)},
-        )
-
-        monkeypatch.setattr(app_mod, "glfw", FakeGlfw)
-        monkeypatch.setattr(app_mod, "imgui", FakeImgui)
-        monkeypatch.setattr(app_mod, "imgui_glfw", fake_backend)
-
-        app = BulletLabUI(sim=sim)
-        app._window = main_window
-        app._imgui_context = main_context
-        monkeypatch.setattr(app, "_apply_style", lambda: None)
-
-        assert app._open_console_window()
-        assert created_windows == [(900, 650, "BulletLab Console", None, main_window)]
-        assert app._console_window is console_window
-        assert renderer_contexts == [console_context]
-
-        app._close_console_window()
-        assert destroyed_windows == [console_window]
-        assert app._console_window is None

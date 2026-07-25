@@ -63,7 +63,7 @@ hl.pulse = True
 
 ## Manual API (custom panels)
 
-Call `set_hover()` in your own panel after any ImGui widget:
+Call `set_hover()` in your own panel after any Dear ImGui widget:
 
 ```python
 @app.custom_panel("Joint Control")

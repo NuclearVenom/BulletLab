@@ -100,8 +100,7 @@ def main() -> None:
     # ──────────────────────────────────────────────
     ui = None
     try:
-        from bulletlab.ui import BulletLabUI
-        import imgui
+        from bulletlab.ui import BulletLabUI, imgui
 
         ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry, highlighter=hl)
         ui.start()

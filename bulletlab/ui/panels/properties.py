@@ -20,10 +20,9 @@ import math
 from typing import Any, TYPE_CHECKING
 
 try:
-    import imgui
-
+    from imgui_bundle import imgui
     _HAS_IMGUI = True
-except ImportError:  # pragma: no cover
+except ImportError:
     imgui = None  # type: ignore[assignment]
     _HAS_IMGUI = False
 
@@ -73,7 +72,7 @@ class PropertiesPanel:
             return
 
         if self._target is None:
-            imgui.text_colored("Select an item in the Explorer.", 0.5, 0.5, 0.5, 1.0)
+            imgui.text_colored(imgui.ImVec4(0.5, 0.5, 0.5, 1.0), "Select an item in the Explorer.")
             return
 
         # Route to appropriate renderer
@@ -205,8 +204,8 @@ class PropertiesPanel:
         range_hi = hi2 if lo2 != 0.0 or hi2 != 0.0 else 6.28
         
         if joint.is_pinned:
-            imgui.push_style_color(imgui.COLOR_SLIDER_GRAB, 0.9, 0.2, 0.2, 1.0)
-            imgui.push_style_color(imgui.COLOR_SLIDER_GRAB_ACTIVE, 1.0, 0.3, 0.3, 1.0)
+            imgui.push_style_color(imgui.Col_.slider_grab, imgui.ImVec4(0.9, 0.2, 0.2, 1.0))
+            imgui.push_style_color(imgui.Col_.slider_grab_active, imgui.ImVec4(1.0, 0.3, 0.3, 1.0))
             
         changed_pos, new_pos = imgui.slider_float(
             "Target Position##jnt_pos", joint.position, range_lo, range_hi

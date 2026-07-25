@@ -52,7 +52,7 @@ in the UI at runtime.
 **Demonstrates**:
 - PD control loop
 - Reading roll/pitch from `robot.roll`/`robot.pitch`
-- Adjustable gains via ImGui sliders
+- Adjustable gains via Dear ImGui sliders
 - Controller data logging
 
 ## Example 04 – Drone Parameter Tuning
@@ -61,7 +61,7 @@ in the UI at runtime.
 
 Generates a custom quadrotor URDF and applies `pybullet.applyExternalForce`
 to simulate thrust. Parameters (thrust, mass, drag, rotor speed) are exposed
-as ImGui sliders and can be changed live during flight.
+as Dear ImGui sliders and can be changed live during flight.
 
 **Demonstrates**:
 - Custom URDF generation at runtime

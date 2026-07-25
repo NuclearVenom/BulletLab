@@ -6,10 +6,10 @@
 *Developed by [Ranasurya Ghosh](https://github.com/NuclearVenom)*
 
 
->**A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern ImGui-based controls, telemetry, visualization, and reinforcement learning workflows.**
+>**A robotics experimentation framework that transforms PyBullet robots into intuitive Python objects, with modern Dear ImGui-based controls, telemetry, visualization, and reinforcement learning workflows.**
 
 [![Python 3.10](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/License-MIT-1B6828?style=flat&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyLjc1IDIuNzVWNC41aDEuOTc1Yy4zNTEgMCAuNjk0LjEwNi45ODQuMzAzbDEuNjk3IDEuMTU0Yy4wNDEuMDI4LjA5LjA0My4xNC4wNDNoNC4xMDJhLjc1Ljc1IDAgMCAxIDAgMS41SDIwLjA3bDMuMzY2IDcuNjhhLjc0OS43NDkgMCAwIDEtLjIzLjg5NmMtLjEuMDc0LS4yMDMuMTQzLS4zMS4yMDZhNi4yOTYgNi4yOTYgMCAwIDEtLjc5LjM5OSA3LjM0OSA3LjM0OSAwIDAgMS0yLjg1Ni41NjkgNy4zNDMgNy4zNDMgMCAwIDEtMi44NTUtLjU2OCA2LjIwNSA2LjIwNSAwIDAgMS0uNzktLjQgMy4yMDUgMy4yMDUgMCAwIDEtLjMwNy0uMjAybC0uMDA1LS4wMDRhLjc0OS43NDkgMCAwIDEtLjIzLS44OTZsMy4zNjgtNy42OGgtLjg4NmMtLjM1MSAwLS42OTQtLjEwNi0uOTg0LS4zMDNsLTEuNjk3LTEuMTU0YS4yNDYuMjQ2IDAgMCAwLS4xNC0uMDQzSDEyLjc1djE0LjVoNC40ODdhLjc1Ljc1IDAgMCAxIDAgMS41SDYuNzYzYS43NS43NSAwIDAgMSAwLTEuNWg0LjQ4N1Y2SDkuMjc1YS4yNDkuMjQ5IDAgMCAwLS4xNC4wNDNMNy40MzkgNy4xOTdjLS4yOS4xOTctLjYzMy4zMDMtLjk4NC4zMDNoLS44ODZsMy4zNjggNy42OGEuNzUuNzUgMCAwIDEtLjIwOS44NzhjLS4wOC4wNjUtLjE2LjEyNi0uMzEuMjIzYTYuMDc3IDYuMDc3IDAgMCAxLS43OTIuNDMzIDYuOTI0IDYuOTI0IDAgMCAxLTIuODc2LjYyIDYuOTEzIDYuOTEzIDAgMCAxLTIuODc2LS42MiA2LjA3NyA2LjA3NyAwIDAgMS0uNzkyLS40MzMgMy40ODMgMy40ODMgMCAwIDEtLjMwOS0uMjIxLjc2Mi43NjIgMCAwIDEtLjIxLS44OEwzLjkzIDcuNUgyLjM1M2EuNzUuNzUgMCAwIDEgMC0xLjVoNC4xMDJjLjA1IDAgLjA5OS0uMDE1LjE0MS0uMDQzbDEuNjk1LTEuMTU0Yy4yOS0uMTk4LjYzNC0uMzAzLjk4NS0uMzAzaDEuOTc0VjIuNzVhLjc1Ljc1IDAgMCAxIDEuNSAwWk0yLjE5MyAxNS4xOThhNS40MTQgNS40MTQgMCAwIDAgMi41NTcuNjM1IDUuNDE0IDUuNDE0IDAgMCAwIDIuNTU3LS42MzVMNC43NSA5LjM2OFptMTQuNTEtLjAyNGMuMDgyLjA0LjE3NC4wODMuMjc1LjEyNi41My4yMjMgMS4zMDUuNDUgMi4yNzIuNDVhNS44NDcgNS44NDcgMCAwIDAgMi41NDctLjU3NkwxOS4yNSA5LjM2N1oiLz48L3N2Zz4=)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-1B6828?style=flat&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyLjc1IDIuNzVWNC41aDEuOTc1Yy4zNTEgMCAuNjk0LjEwNi45ODQuMzAzbDEuNjk3IDEuMTU0Yy4wNDEuMDI4LjA5LjA0My4xNC4wNDNoNC4xMDJhLjc1Ljc1IDAgMCAxIDAgMS41SDIwLjA3bDMuMzY2IDcuNjhhLjc0OS43NDkgMCAwIDEtLjIzLjg5NmMtLjEuMDc0LS4yMDMuMTQzLS4zMS4yMDZhNi4yOTYgNi4yOTYgMCAwIDEtLjc5LjM5OSA3LjM0OSA3LjM0OSAwIDAgMS0yLjg1Ni41NjkgNy4zNDMgNy4zNDMgMCAwIDEtMi44NTUtLjU2OCA2LjIwNSA2LjIwNSAwIDAgMS0uNzktLjQgMy4yMDUgMy4yMDUgMCAwIDEtLjMwNy0uMjAybC0uMDA1LS4wMDRhLjc0OS43NDkgMCAwIDEtLjIzLS44OTZsMy4zNjgtNy42OGgtLjg4NmMtLjM1MSAwLS42OTQtLjEwNi0uOTg0LS4zMDNsLTEuNjk3LTEuMTU0YS4yNDYuMjQ2IDAgMCAwLS4xNC0uMDQzSDEyLjc1djE0LjVoNC40ODdhLjc1Ljc1IDAgMCAxIDAgMS41SDYuNzYzYS43NS43NSAwIDAgMSAwLTEuNWg0LjQ4N1Y2SDkuMjc1YS4yNDkuMjQ5IDAgMCAwLS4xNC0uMDQzN0zNC4zOSA3LjE5N2MtLjI5LjE5Ny0uNjMzLjMwMy0uOTg0LjMwM2gtLjg4NmwyLjM2OCA3LjY4YS43NS43NSAwIDAgMS0uMjA5Ljg3OGMtLjA4LjA2NS0uMTYuMTI2LS4zMS4yMjNhNi4wNzcgNi4wNzcgMCAwIDEtLjc5Mi40MzMgNi45MjQgNi45MjQgMCAwIDEtMi44NzYuNjIgNi45MTMgNi45MTMgMCAwIDEtMi44NzYtLjYyIDYuMDc3IDYuMDc3IDAgMCAxLS43OTItLjQzMyAzLjQ4MyAzLjQ4MyAwIDAgMS0uMzA5LS4yMjEuNzYyLjc2MiAwIDAgMS0uMjEtLjg4TDMuOTMgNy41SDIuMzUzYS43NS43NSAwIDAgMSAwLTEuNWg0LjEwMmMuMDUgMCAuMDk5LS4wMTUuMTQxLS4wNDNsMS42OTUtMS4xNTRjLjI5LS4xOTguNjM0LS4zMDMuOTg1LS4zMDNoMS45NzRWMi43NWEuNzUuNzUgMCAwIDEgMS41IDBaTTIuMTkzIDE1LjE5OGE1LjQxNCA1LjQxNCAwIDAgMCAyLjU1Ny42MzUgNS40MTQgNS40MTQgMCAwIDAgMi41NTctLjYzNUw0Ljc1IDkuMzY4Wm0xNC41MS0uMDI0Yy4wODIuMDQuMTc0LjA4My4yNzUuMTI2LjUzLjIyMyAxLjMwNS40NSAyLjI3Mi40NWE1Ljg0NyA1Ljg0NyAwIDAgMCAyLjU0Ny0uNTc2TDE5LjI1IDkuMzY3WiIvPjwvc3ZnPg==)](LICENSE)
 [![CI](https://github.com/NuclearVenom/BulletLab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NuclearVenom/BulletLab/actions/workflows/ci.yml)
 [![BulletLab Arsenal](https://img.shields.io/badge/Registry-BulletLab_Arsenal-FF8C00?style=flat&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDYgNjQ2Ij48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMCAwSDE1M1Y0MEg0MFY2MDdIMTUzVjY0NkgwWk0yNDcgNzVIMzk5VjIyOUgzNjFWMzAzSDQ3NVYzODBINDM2VjM0MkgzNjFWNDUzSDQ3NVY1NzBINDM2VjQ5NUgyMTFWNTcwSDE3MVY0NTNIMjg1VjM0MkgyMTFWMzgwSDE3MVYzMDNIMjg1VjIyOUgyNDdaTTQ5MyAwSDY0NlY2NDZINDkzVjYwN0g2MDdWNDBINDkzWiIvPjwvc3ZnPg==)](https://github.com/NuclearVenom/BulletLab-Arsenal)
 
@@ -26,7 +26,7 @@
 
 ## What is BulletLab?
 
-BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
+BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [Dear ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
 
 **Instead of this:**
 ```python
@@ -65,9 +65,9 @@ BulletLab uses a **two-window architecture**:
 | Window | Purpose |
 |--------|---------|
 | PyBullet Native Window | Physics simulation, 3D rendering, camera |
-| BulletLab ImGui Window | Control panels, telemetry, live plots, console |
+| BulletLab UI Window | Control panels, telemetry, live plots, console |
 
-These windows communicate through Python objects. BulletLab does **not** attempt to replace PyBullet's renderer or embed ImGui inside the simulation viewport.
+These windows communicate through Python objects. BulletLab does **not** attempt to replace PyBullet's renderer or embed Dear ImGui inside the simulation viewport.
 
 ---
 
@@ -219,7 +219,7 @@ robot = Robot.load("arsenal:reference_bot/BLem1", sim=sim)
 All standard `Robot.load()` parameters — `position`, `fixed_base`, `tilt`, etc. — work
 identically with Arsenal sources.
 
-### ImGui Control Panel
+### Dear ImGui Control Panel
 
 ```python
 from bulletlab.ui import BulletLabUI
@@ -299,7 +299,7 @@ robot.apply_action(action)     # → updates joints
 | Example | Description |
 |---------|-------------|
 | `examples/01_differential_drive_rover.py` | Rover with wheel velocity control |
-| `examples/02_robotic_arm.py` | Joint position control with ImGui sliders |
+| `examples/02_robotic_arm.py` | Joint position control with Dear ImGui sliders |
 | `examples/03_self_balancing_robot.py` | PD controller for balance |
 | `examples/04_drone_parameter_tuning.py` | Thrust/mass parameter exploration |
 | `examples/05_generic_robot_inspector.py` | Load any URDF and inspect it |
@@ -341,10 +341,10 @@ pytest tests/ -v --cov=bulletlab --cov-report=term-missing
 | Component | Library |
 |-----------|---------|
 | Physics | PyBullet |
-| UI | Dear ImGui (pyimgui) |
+| UI | Dear ImGui (imgui-bundle) |
 | Data | NumPy, Pandas |
 | Config | PyYAML |
-| Plotting | PyQtGraph |
+| Plotting | ImPlot |
 | Testing | PyTest |
 | Docs | MkDocs + mkdocstrings |
 

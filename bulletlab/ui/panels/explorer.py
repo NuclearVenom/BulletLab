@@ -20,10 +20,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable
 
 try:
-    import imgui
-
+    from imgui_bundle import imgui
     _HAS_IMGUI = True
-except ImportError:  # pragma: no cover
+except ImportError:
     imgui = None  # type: ignore[assignment]
     _HAS_IMGUI = False
 

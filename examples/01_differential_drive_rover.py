@@ -115,9 +115,7 @@ def main() -> None:
     # ──────────────────────────────────────────────
     ui = None
     try:
-        from bulletlab.ui import BulletLabUI
-        from bulletlab.ui import widgets as ui_widgets
-        import imgui
+        from bulletlab.ui import BulletLabUI, widgets as ui_widgets, imgui
 
         ui = BulletLabUI(sim=sim, robots=[robot], telemetry=telemetry, camera=cam, highlighter=hl)
         ui.start()
@@ -161,7 +159,7 @@ def main() -> None:
 
             # ── Manual controls (grayed out when autopilot is ON) ────────────
             if autopilot_on[0]:
-                imgui.push_style_var(imgui.STYLE_ALPHA, 0.35)
+                imgui.push_style_var(imgui.StyleVar_.alpha, 0.35)
 
             # Snap toggle switch
             ui_widgets.toggle_switch(

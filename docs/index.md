@@ -13,7 +13,7 @@
 
 **A high-level robotics simulation and experimentation framework built on PyBullet.**
 
-BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
+BulletLab provides a high-level object-oriented interface to [PyBullet](https://pybullet.org/wordpress/) that simplifies robotics experimentation by exposing joints, links, sensors, and environments as intuitive Python objects instead of raw physics engine IDs. It combines real-time simulation with a [Dear ImGui](https://www.dearimgui.com/)-powered modern interface for interactive control, parameter tuning, telemetry visualization, and experiment management, while also offering reinforcement learning integration for training and evaluating autonomous robotic systems within a unified workflow.
 
 ## Why BulletLab?
 
@@ -27,12 +27,12 @@ BulletLab provides a high-level object-oriented interface to [PyBullet](https://
 
 ## Key Features
 - **Object-oriented robot interface** — joints and links as Python objects
-- **ImGui control window** — modern interface, separate from PyBullet visualization
+- **Dear ImGui control window** — modern interface, separate from PyBullet visualization
 - **Interactive UI Console** — live test API calls, script sequential movements, and register custom [commands](guides/console_guide.md#built-in-commands)
 - **[BulletLab Arsenal](guides/arsenal_guide.md)** — built-in model registry to seamlessly download and spawn high-quality robots on the fly
 - **Live telemetry** — watch any robot state variable
 - **Data logging** — CSV and JSON output
-- **Live plots** — PyQtGraph-powered real-time charts
+- **Live plots** — ImPlot-powered real-time charts
 - **RL-ready** — clean state/action interface, no ML framework required
 - **Generic** — works with any URDF or MJCF robot
 

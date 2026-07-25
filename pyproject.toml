@@ -59,9 +59,7 @@ dependencies = [
     "numpy>=1.24.0",
     "pandas>=2.0.0",
     "pyyaml>=6.0",
-    "imgui[glfw]>=2.0.0",
-    "pyqtgraph>=0.13.3",
-    "PyQt5>=5.15.0",
+    "imgui-bundle>=1.5.0",
 ]
 
 [project.optional-dependencies]
@@ -69,6 +67,9 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
+]
+all = [
+    "Pillow>=9.0.0",
 ]
 dev = [
     "bulletlab[test]",

@@ -35,18 +35,44 @@ from __future__ import annotations
 import sys
 from typing import Any, Callable, TYPE_CHECKING
 
-# ImGui with GLFW backend
+# Dear ImGui with GLFW backend
 try:
-    import imgui
-    import imgui.integrations.glfw as imgui_glfw
-    import glfw
+    from imgui_bundle import imgui as _imgui_bundle
+    try:
+        from imgui_bundle import implot
+        _HAS_IMPLOT = True
+    except ImportError:
+        implot = None
+        _HAS_IMPLOT = False
+
+    # glfw: try imgui_bundle's own bundled binding first, then the external package.
+    try:
+        import imgui_bundle.glfw as glfw  # bundled in some imgui-bundle builds
+    except ImportError:
+        try:
+            import glfw  # external 'glfw' package: pip install glfw
+        except ImportError as _glfw_err:
+            raise ImportError(
+                f"'glfw' package is required for the BulletLab UI.\n"
+                f"  Install it with:  pip install glfw\n"
+                f"  Original error:   {_glfw_err}"
+            ) from _glfw_err
+
+    # GlfwRenderer: try imgui_bundle's python_backends, fall back to OpenGL renderer
+    try:
+        from imgui_bundle.python_backends.glfw_backend import GlfwRenderer as _GlfwRenderer
+    except ImportError:
+        from imgui_bundle.python_backends.opengl_backend import OpenGLRenderer as _GlfwRenderer  # type: ignore[assignment]
+
     import OpenGL.GL as gl
 
+    from imgui_bundle import imgui
     _HAS_IMGUI = True
-except ImportError as _imgui_err:  # pragma: no cover
+except ImportError as _imgui_err:
     _HAS_IMGUI = False
+    _imgui_bundle = None  # type: ignore[assignment]
+    _GlfwRenderer = None  # type: ignore[assignment]
     imgui = None  # type: ignore[assignment]
-    imgui_glfw = None  # type: ignore[assignment]
     glfw = None  # type: ignore[assignment]
     gl = None  # type: ignore[assignment]
     _IMGUI_IMPORT_ERROR = str(_imgui_err)
@@ -116,6 +142,7 @@ class BulletLabUI:
         self._window: Any = None
         self._impl: Any = None
         self._imgui_context: Any = None
+        self._implot_context: Any = None
         self._console_window: Any = None
         self._console_impl: Any = None
         self._console_imgui_context: Any = None
@@ -150,17 +177,18 @@ class BulletLabUI:
             self, for method chaining.
 
         Raises:
-            ImportError: If pyimgui[glfw] or glfw is not installed.
+            ImportError: If imgui-bundle is not installed.
 
         Example::
 
             app.start()
         """
         if not _HAS_IMGUI:
+            _err = getattr(sys.modules[__name__], "_IMGUI_IMPORT_ERROR", "unknown")
             print(
-                f"[BulletLab] UI disabled: pyimgui[glfw] not available.\n"
-                f"  Install with: pip install imgui[glfw]\n"
-                f"  Error: {getattr(sys.modules[__name__], '_IMGUI_IMPORT_ERROR', 'unknown')}"
+                f"[BulletLab] UI disabled — required packages missing.\n"
+                f"  Run:   pip install imgui-bundle glfw PyOpenGL\n"
+                f"  Error: {_err}"
             )
             return self
 
@@ -189,11 +217,24 @@ class BulletLabUI:
         glfw.make_context_current(self._window)
         glfw.swap_interval(1)  # vsync
 
-        # Style ImGui
-        self._imgui_context = imgui.create_context()
-        self._apply_style()
+        # Create ImGui context and initialize the backend renderer.
+        # imgui_bundle requires the context to be current before GlfwRenderer
+        # builds its device objects (font atlas upload, shader compile).
+        self._imgui_context = _imgui_bundle.create_context()
+        _imgui_bundle.set_current_context(self._imgui_context)
+        
+        if _HAS_IMPLOT:
+            self._implot_context = implot.create_context()
+            implot.set_current_context(self._implot_context)
+            
+        try:
+            self._apply_style()
+        except Exception as _style_err:  # pragma: no cover
+            import warnings
+            warnings.warn(f"[BulletLab] Could not apply custom theme: {_style_err}")
 
-        self._impl = imgui_glfw.GlfwRenderer(self._window)
+
+        self._impl = _GlfwRenderer(self._window)
 
         # Build panels
         self._build_panels()
@@ -217,6 +258,9 @@ class BulletLabUI:
         if self._window is not None and glfw is not None:
             glfw.destroy_window(self._window)
             glfw.terminate()
+        if self._implot_context is not None and _HAS_IMPLOT:
+            implot.destroy_context(self._implot_context)
+            self._implot_context = None
         self._window = None
         self._impl = None
         self._imgui_context = None
@@ -305,9 +349,9 @@ class BulletLabUI:
         if self._highlighter is not None:
             self._highlighter.begin_frame()
 
-        imgui.new_frame()
+        _imgui_bundle.new_frame()
         self._render_frame()
-        imgui.render()
+        _imgui_bundle.render()
 
         # Highlighter: commit pending hover → update 3D colours
         if self._highlighter is not None:
@@ -315,7 +359,7 @@ class BulletLabUI:
 
         gl.glClearColor(0.1, 0.1, 0.12, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        self._impl.render(imgui.get_draw_data())
+        self._impl.render(_imgui_bundle.get_draw_data())
         glfw.swap_buffers(self._window)
         self._render_console_window()
 
@@ -337,14 +381,14 @@ class BulletLabUI:
 
         # One full-screen, non-movable, non-resizable window that fills the
         # entire GLFW client area below the menu bar.
-        imgui.set_next_window_position(0, menu_h)
-        imgui.set_next_window_size(w, h - menu_h)
+        imgui.set_next_window_pos(imgui.ImVec2(0, menu_h))
+        imgui.set_next_window_size(imgui.ImVec2(w, h - menu_h))
         imgui.begin(
             "##main",
             flags=(
-                imgui.WINDOW_NO_TITLE_BAR
-                | imgui.WINDOW_NO_RESIZE
-                | imgui.WINDOW_NO_MOVE
+                imgui.WindowFlags_.no_title_bar
+                | imgui.WindowFlags_.no_resize
+                | imgui.WindowFlags_.no_move
             ),
         )
 
@@ -354,7 +398,7 @@ class BulletLabUI:
         # ── Custom panels (shown next so they're immediately visible) ────────
         for cp in self._custom_panels:
             label = cp.title
-            if imgui.collapsing_header(label, flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header(label, flags=imgui.TreeNodeFlags_.default_open):
                 imgui.indent(8)
                 cp.render_fn()
                 imgui.unindent(8)
@@ -362,7 +406,7 @@ class BulletLabUI:
 
         # ── Built-in panels ──────────────────────────────────────────────────
         if self._show_explorer and self._explorer is not None:
-            if imgui.collapsing_header("Explorer", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header("Explorer", flags=imgui.TreeNodeFlags_.default_open):
                 imgui.indent(8)
                 self._explorer.render()
                 imgui.unindent(8)
@@ -371,28 +415,30 @@ class BulletLabUI:
         if self._show_properties and self._properties is not None:
             if self._explorer is not None:
                 self._properties.set_target(self._explorer.selected_object)
-            if imgui.collapsing_header("Properties", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header("Properties", flags=imgui.TreeNodeFlags_.default_open):
                 imgui.indent(8)
                 self._properties.render()
                 imgui.unindent(8)
             imgui.spacing()
 
         if self._show_telemetry and self._telemetry_panel is not None:
-            if imgui.collapsing_header("Telemetry", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header("Telemetry", flags=imgui.TreeNodeFlags_.default_open):
                 imgui.indent(8)
                 self._telemetry_panel.render()
                 imgui.unindent(8)
             imgui.spacing()
 
         if self._show_plots and self._plots_panel is not None:
-            if imgui.collapsing_header("Live Plots", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header("Live Plots", flags=imgui.TreeNodeFlags_.default_open):
                 imgui.indent(8)
+                if _HAS_IMPLOT and self._implot_context is not None:
+                    implot.set_current_context(self._implot_context)
                 self._plots_panel.render()
                 imgui.unindent(8)
             imgui.spacing()
 
         if self._show_console and self._console is not None:
-            if imgui.collapsing_header("Console", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header("Console", flags=imgui.TreeNodeFlags_.default_open):
                 imgui.indent(8)
                 self._console.render()
                 imgui.unindent(8)
@@ -409,7 +455,7 @@ class BulletLabUI:
         if self._window is not None:
             glfw.make_context_current(self._window)
         if self._imgui_context is not None:
-            imgui.set_current_context(self._imgui_context)
+            _imgui_bundle.set_current_context(self._imgui_context)
 
     def _open_console_window(self) -> bool:
         """Create the separate native window used by the expanded console."""
@@ -434,16 +480,17 @@ class BulletLabUI:
         glfw.make_context_current(self._console_window)
         glfw.swap_interval(1)
 
-        self._console_imgui_context = imgui.create_context()
-        # ImGui only makes a newly created context current when no context
-        # already exists. Select it explicitly before the renderer builds its
-        # device objects and font atlas.
-        imgui.set_current_context(self._console_imgui_context)
+        # Create a *new* independent ImGui context for the console window.
+        # imgui-bundle requires explicit context selection before GlfwRenderer
+        # initialises its device objects.
+        self._console_imgui_context = _imgui_bundle.create_context()
+        _imgui_bundle.set_current_context(self._console_imgui_context)
         self._apply_style()
-        self._console_impl = imgui_glfw.GlfwRenderer(self._console_window)
-        # pyimgui's GLFW character callback looks up the current global ImGui
-        # context. Event polling happens while the main context is current, so
-        # route text input explicitly to the console context.
+        self._console_impl = _GlfwRenderer(self._console_window)
+        # imgui-bundle's GlfwRenderer.char_callback() calls imgui.get_io()
+        # which resolves to the *current* context.  Event polling happens
+        # while the main context is current, so we override the char callback
+        # to switch context before forwarding — identical to the old behaviour.
         glfw.set_char_callback(
             self._console_window,
             self._console_char_callback,
@@ -452,15 +499,21 @@ class BulletLabUI:
         return True
 
     def _console_char_callback(self, window: Any, codepoint: int) -> None:
-        """Route native console text input to its own ImGui context."""
+        """Route native console text input to its own ImGui context.
+
+        imgui-bundle's GlfwRenderer.char_callback() calls imgui.get_io() which
+        resolves to whichever ImGui context is *current* at call time.  We must
+        therefore switch to the console context before forwarding and restore
+        the main context in the finally block.
+        """
         if self._console_impl is None or self._console_imgui_context is None:
             return
-        imgui.set_current_context(self._console_imgui_context)
+        _imgui_bundle.set_current_context(self._console_imgui_context)
         try:
             self._console_impl.char_callback(window, codepoint)
         finally:
             if self._imgui_context is not None:
-                imgui.set_current_context(self._imgui_context)
+                _imgui_bundle.set_current_context(self._imgui_context)
 
     def _render_console_window(self) -> None:
         """Render one frame of the expanded console's native window."""
@@ -477,29 +530,29 @@ class BulletLabUI:
             return
 
         glfw.make_context_current(self._console_window)
-        imgui.set_current_context(self._console_imgui_context)
+        _imgui_bundle.set_current_context(self._console_imgui_context)
         self._console_impl.process_inputs()
-        imgui.new_frame()
+        _imgui_bundle.new_frame()
 
         width, height = glfw.get_window_size(self._console_window)
-        imgui.set_next_window_position(0, 0)
-        imgui.set_next_window_size(width, height)
+        imgui.set_next_window_pos(imgui.ImVec2(0, 0))
+        imgui.set_next_window_size(imgui.ImVec2(width, height))
         imgui.begin(
             "##native_console_host",
             flags=(
-                imgui.WINDOW_NO_TITLE_BAR
-                | imgui.WINDOW_NO_RESIZE
-                | imgui.WINDOW_NO_MOVE
-                | imgui.WINDOW_NO_COLLAPSE
+                imgui.WindowFlags_.no_title_bar
+                | imgui.WindowFlags_.no_resize
+                | imgui.WindowFlags_.no_move
+                | imgui.WindowFlags_.no_collapse
             ),
         )
         self._console.render_expanded()
         imgui.end()
-        imgui.render()
+        _imgui_bundle.render()
 
         gl.glClearColor(0.1, 0.1, 0.12, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        self._console_impl.render(imgui.get_draw_data())
+        self._console_impl.render(_imgui_bundle.get_draw_data())
         glfw.swap_buffers(self._console_window)
 
         if not self._console.is_expanded:
@@ -514,11 +567,11 @@ class BulletLabUI:
 
         glfw.make_context_current(self._console_window)
         if self._console_imgui_context is not None:
-            imgui.set_current_context(self._console_imgui_context)
+            _imgui_bundle.set_current_context(self._console_imgui_context)
         if self._console_impl is not None:
             self._console_impl.shutdown()
         if self._console_imgui_context is not None:
-            imgui.destroy_context(self._console_imgui_context)
+            _imgui_bundle.destroy_context(self._console_imgui_context)
         glfw.destroy_window(self._console_window)
 
         self._console_window = None
@@ -536,17 +589,17 @@ class BulletLabUI:
             return
 
         cam = self._camera
-        if imgui.collapsing_header("Camera", flags=imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+        if imgui.collapsing_header("Camera", flags=imgui.TreeNodeFlags_.default_open):
             imgui.indent(8)
 
             # ── Enable / disable toggle ─────────────────────────────────────
             changed, new_val = imgui.checkbox("Dynamic Follow", cam.enabled)
             if changed:
                 cam.enabled = new_val
-            imgui.same_line(spacing=12)
+            imgui.same_line(0, 12)
             status = "ON" if cam.enabled else "OFF"
             color  = (0.3, 0.9, 0.4, 1.0) if cam.enabled else (0.6, 0.6, 0.6, 1.0)
-            imgui.text_colored(f"[{status}]", *color)
+            imgui.text_colored(imgui.ImVec4(*color), f"[{status}]")
 
             if cam.enabled:
                 imgui.spacing()
@@ -611,7 +664,7 @@ class BulletLabUI:
 
             # Status bar
             sim_status = "(Paused)" if self._sim.is_paused else "(Running)"
-            imgui.same_line(spacing=20)
+            imgui.same_line(0, 20)
             imgui.text(
                 f"  {sim_status}  |  "
                 f"Step: {self._sim.step_count}  |  "
@@ -710,38 +763,72 @@ class BulletLabUI:
     # ------------------------------------------------------------------
 
     def _apply_style(self) -> None:
-        """Apply a dark, modern ImGui theme."""
-        style = imgui.get_style()
+        """Apply a dark, modern ImGui theme.
 
-        # Colors
-        style.colors[imgui.COLOR_WINDOW_BACKGROUND] = (0.10, 0.10, 0.13, 0.98)
-        style.colors[imgui.COLOR_TITLE_BACKGROUND] = (0.15, 0.15, 0.20, 1.0)
-        style.colors[imgui.COLOR_TITLE_BACKGROUND_ACTIVE] = (0.20, 0.25, 0.35, 1.0)
-        style.colors[imgui.COLOR_BUTTON] = (0.20, 0.40, 0.65, 0.8)
-        style.colors[imgui.COLOR_BUTTON_HOVERED] = (0.30, 0.55, 0.80, 1.0)
-        style.colors[imgui.COLOR_BUTTON_ACTIVE] = (0.15, 0.30, 0.55, 1.0)
-        style.colors[imgui.COLOR_FRAME_BACKGROUND] = (0.18, 0.18, 0.22, 1.0)
-        style.colors[imgui.COLOR_FRAME_BACKGROUND_HOVERED] = (0.22, 0.22, 0.28, 1.0)
-        style.colors[imgui.COLOR_HEADER] = (0.20, 0.30, 0.45, 0.8)
-        style.colors[imgui.COLOR_HEADER_HOVERED] = (0.25, 0.38, 0.55, 1.0)
-        style.colors[imgui.COLOR_HEADER_ACTIVE] = (0.15, 0.25, 0.40, 1.0)
-        style.colors[imgui.COLOR_SLIDER_GRAB] = (0.40, 0.65, 0.90, 1.0)
-        style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = (0.55, 0.80, 1.0, 1.0)
-        style.colors[imgui.COLOR_CHECK_MARK] = (0.40, 0.90, 0.40, 1.0)
-        style.colors[imgui.COLOR_SEPARATOR] = (0.30, 0.30, 0.40, 1.0)
-        style.colors[imgui.COLOR_MENUBAR_BACKGROUND] = (0.12, 0.12, 0.16, 1.0)
-        style.colors[imgui.COLOR_POPUP_BACKGROUND] = (0.12, 0.12, 0.16, 0.98)
-        style.colors[imgui.COLOR_TEXT] = (0.90, 0.90, 0.95, 1.0)
+        Uses imgui.style_colors_dark() as a base, then overlays custom colours.
+        Resilient to imgui-bundle version differences in the Style API.
+        """
+        from imgui_bundle import imgui as _bi
+        from imgui_bundle import ImVec4, ImVec2
 
-        # Sizing
-        style.window_rounding = 6.0
-        style.frame_rounding = 4.0
+        # ── base dark theme ──────────────────────────────────────────────────
+        _bi.style_colors_dark()
+
+        style = _bi.get_style()
+
+        # ── colour setter: tries every known API pattern ─────────────────────
+        def _sc(col_idx: int, color: ImVec4) -> None:
+            """Set one style colour, handling API differences across versions."""
+            # imgui-bundle <= 1.4: style.colors is a mutable list
+            try:
+                style.colors[col_idx] = color
+                return
+            except (AttributeError, TypeError):
+                pass
+            # imgui-bundle with capital-C binding
+            try:
+                style.Colors[col_idx] = color  # type: ignore[index]
+                return
+            except (AttributeError, TypeError):
+                pass
+            # imgui-bundle 1.5+ method-based setter
+            try:
+                style.set_color_(col_idx, color)  # type: ignore[attr-defined]
+                return
+            except AttributeError:
+                pass
+            # Final fallback: push_style_color in the frame (handled by caller)
+
+        # ── custom BulletLab colours ─────────────────────────────────────────
+        _sc(_bi.Col_.window_bg.value,          ImVec4(0.10, 0.10, 0.13, 0.98))
+        _sc(_bi.Col_.title_bg.value,           ImVec4(0.15, 0.15, 0.20, 1.0))
+        _sc(_bi.Col_.title_bg_active.value,    ImVec4(0.20, 0.25, 0.35, 1.0))
+        _sc(_bi.Col_.button.value,             ImVec4(0.20, 0.40, 0.65, 0.8))
+        _sc(_bi.Col_.button_hovered.value,     ImVec4(0.30, 0.55, 0.80, 1.0))
+        _sc(_bi.Col_.button_active.value,      ImVec4(0.15, 0.30, 0.55, 1.0))
+        _sc(_bi.Col_.frame_bg.value,           ImVec4(0.18, 0.18, 0.22, 1.0))
+        _sc(_bi.Col_.frame_bg_hovered.value,   ImVec4(0.22, 0.22, 0.28, 1.0))
+        _sc(_bi.Col_.header.value,             ImVec4(0.20, 0.30, 0.45, 0.8))
+        _sc(_bi.Col_.header_hovered.value,     ImVec4(0.25, 0.38, 0.55, 1.0))
+        _sc(_bi.Col_.header_active.value,      ImVec4(0.15, 0.25, 0.40, 1.0))
+        _sc(_bi.Col_.slider_grab.value,        ImVec4(0.40, 0.65, 0.90, 1.0))
+        _sc(_bi.Col_.slider_grab_active.value, ImVec4(0.55, 0.80, 1.0,  1.0))
+        _sc(_bi.Col_.check_mark.value,         ImVec4(0.40, 0.90, 0.40, 1.0))
+        _sc(_bi.Col_.separator.value,          ImVec4(0.30, 0.30, 0.40, 1.0))
+        _sc(_bi.Col_.menu_bar_bg.value,        ImVec4(0.12, 0.12, 0.16, 1.0))
+        _sc(_bi.Col_.popup_bg.value,           ImVec4(0.12, 0.12, 0.16, 0.98))
+        _sc(_bi.Col_.text.value,               ImVec4(0.90, 0.90, 0.95, 1.0))
+
+        # ── sizing (these use named attributes, stable across versions) ───────
+        style.window_rounding    = 6.0
+        style.frame_rounding     = 4.0
         style.scrollbar_rounding = 4.0
-        style.grab_rounding = 4.0
-        style.tab_rounding = 4.0
-        style.window_padding = (10.0, 8.0)
-        style.frame_padding = (6.0, 4.0)
-        style.item_spacing = (8.0, 6.0)
+        style.grab_rounding      = 4.0
+        style.tab_rounding       = 4.0
+        style.window_padding     = ImVec2(10.0, 8.0)
+        style.frame_padding      = ImVec2(6.0,  4.0)
+        style.item_spacing       = ImVec2(8.0,  6.0)
+
 
     # ------------------------------------------------------------------
     # Repr

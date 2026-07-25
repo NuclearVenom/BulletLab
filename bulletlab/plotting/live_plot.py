@@ -1,9 +1,9 @@
 """
-LivePlot – real-time data visualization using PyQtGraph.
+LivePlot – real-time data visualization using ImPlot (imgui-bundle).
 
-LivePlot opens a PyQtGraph window and plots live data from callable sources.
+LivePlot opens a standalone GLFW window and plots live data from callable sources.
 Multiple traces can be added with custom colors. The plot supports zoom,
-pan (via PyQtGraph's native interaction), pause, resume, and image export.
+pan, pause, and resume natively via ImPlot.
 
 Example::
 
@@ -23,7 +23,7 @@ Example::
 
 Non-blocking usage::
 
-    plot.start()      # opens window in Qt thread
+    plot.start()      # opens window via GLFW
     # ... simulation loop calls plot.update() each step
     plot.stop()       # closes window
 """
@@ -34,23 +34,37 @@ import sys
 import time
 from collections import deque
 from typing import Any, Callable
+import OpenGL.GL as gl
 
-# PyQtGraph and Qt are optional — graceful fallback if not installed
 try:
-    import pyqtgraph as pg
-    from pyqtgraph.Qt import QtWidgets, QtCore
+    from imgui_bundle import imgui, implot
+    
+    try:
+        import imgui_bundle.glfw as glfw
+    except ImportError:
+        import glfw  # type: ignore
+        
+    try:
+        from imgui_bundle.python_backends.glfw_backend import GlfwRenderer
+    except ImportError:
+        from imgui_bundle.python_backends.opengl_backend import OpenGLRenderer as GlfwRenderer  # type: ignore
 
-    _HAS_PYQTGRAPH = True
-except ImportError:  # pragma: no cover
-    _HAS_PYQTGRAPH = False
-    pg = None  # type: ignore[assignment]
-    QtWidgets = None  # type: ignore[assignment]
-    QtCore = None  # type: ignore[assignment]
+    import numpy as np
+    _HAS_IMPLOT = True
+except ImportError:
+    _HAS_IMPLOT = False
+
+def hex_to_vec4(hex_str: str) -> imgui.ImVec4:
+    """Convert #RRGGBB to ImVec4."""
+    hex_str = hex_str.lstrip('#')
+    if len(hex_str) == 6:
+        r, g, b = (int(hex_str[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+        return imgui.ImVec4(r, g, b, 1.0)
+    return imgui.ImVec4(1.0, 1.0, 1.0, 1.0)
 
 
 class _PlotSeries:
     """Internal container for one data series."""
-
     def __init__(
         self,
         name: str,
@@ -64,34 +78,13 @@ class _PlotSeries:
         self.max_points = max_points
         self.timestamps: deque[float] = deque(maxlen=max_points)
         self.values: deque[float] = deque(maxlen=max_points)
-        self.curve: Any = None  # pyqtgraph PlotDataItem
 
 
 class LivePlot:
-    """Real-time multi-trace plotting window powered by PyQtGraph.
+    """Real-time multi-trace plotting window powered by ImPlot.
 
-    Opens a separate Qt window. The simulation loop must call
+    Opens a separate GLFW window. The simulation loop must call
     :meth:`update` periodically to push new data and refresh the display.
-
-    Args:
-        title: Window title.
-        max_points: Maximum number of data points per trace (older points
-            are dropped in a rolling fashion).
-        update_interval_ms: Minimum time between display refreshes in
-            milliseconds. Reduces overhead when :meth:`update` is called
-            faster than needed.
-        y_label: Y-axis label.
-        x_label: X-axis label.
-
-    Example::
-
-        plot = LivePlot(title="Speed vs Time", max_points=300)
-        plot.watch("Speed", lambda: robot.speed, color="#00ff88")
-        plot.start()
-        for _ in range(1000):
-            sim.step()
-            plot.update()
-        plot.stop()
     """
 
     def __init__(
@@ -114,14 +107,11 @@ class LivePlot:
         self._start_time: float = 0.0
         self._last_refresh: float = 0.0
 
-        # Qt objects (None until start() is called)
-        self._app: Any = None
+        # ImGui / GLFW objects
         self._window: Any = None
-        self._plot_widget: Any = None
-
-    # ------------------------------------------------------------------
-    # Registration
-    # ------------------------------------------------------------------
+        self._impl: Any = None
+        self._imgui_context: Any = None
+        self._implot_context: Any = None
 
     def watch(
         self,
@@ -129,20 +119,6 @@ class LivePlot:
         source: Callable[[], Any],
         color: str = "#ffffff",
     ) -> "LivePlot":
-        """Add a data series to the plot.
-
-        Args:
-            name: Series name (shown in legend).
-            source: Callable returning the current value.
-            color: Line color as a hex string (e.g. ``"#00ff88"``).
-
-        Returns:
-            self, for method chaining.
-
-        Example::
-
-            plot.watch("Speed", lambda: robot.speed, color="#00ff88")
-        """
         series = _PlotSeries(
             name=name,
             source=source,
@@ -152,60 +128,42 @@ class LivePlot:
         self._series.append(series)
         return self
 
-    # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
-
     def start(self) -> "LivePlot":
-        """Open the plot window.
-
-        Creates a Qt application if one does not already exist.
-        Non-blocking: the window is opened and control returns immediately.
-        Call :meth:`update` in your simulation loop to refresh the plot.
-
-        Returns:
-            self, for method chaining.
-
-        Raises:
-            ImportError: If PyQtGraph is not installed.
-
-        Example::
-
-            plot.start()
-        """
-        if not _HAS_PYQTGRAPH:
+        if not _HAS_IMPLOT:
             print(
-                "[BulletLab] LivePlot: PyQtGraph is not installed. "
-                "Install with: pip install pyqtgraph PyQt5"
+                "[BulletLab] LivePlot: imgui-bundle with implot is not available. "
+                "Install with: pip install imgui-bundle glfw numpy"
             )
             return self
 
         if self._running:
             return self
 
-        # Ensure Qt application exists
-        self._app = QtWidgets.QApplication.instance()
-        if self._app is None:
-            self._app = QtWidgets.QApplication(sys.argv)
+        if not glfw.init():
+            raise RuntimeError("GLFW could not be initialized")
 
-        # Create window
-        self._window = pg.GraphicsLayoutWidget(title=self._title, show=True)
-        self._window.setWindowTitle(self._title)
-        self._window.resize(900, 500)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, 1)
 
-        self._plot_widget = self._window.addPlot(
-            title=self._title,
-            labels={"left": self._y_label, "bottom": self._x_label},
-        )
-        self._plot_widget.showGrid(x=True, y=True, alpha=0.3)
-        self._plot_widget.addLegend()
+        self._window = glfw.create_window(900, 500, self._title, None, None)
+        if not self._window:
+            glfw.terminate()
+            raise RuntimeError("Could not create GLFW window")
+            
+        glfw.make_context_current(self._window)
+        glfw.swap_interval(1)
 
-        # Create curves for each series
-        for series in self._series:
-            series.curve = self._plot_widget.plot(
-                pen=pg.mkPen(color=series.color, width=2),
-                name=series.name,
-            )
+        self._imgui_context = imgui.create_context()
+        imgui.set_current_context(self._imgui_context)
+        
+        self._implot_context = implot.create_context()
+        implot.set_current_context(self._implot_context)
+
+        imgui.style_colors_dark()
+        
+        self._impl = GlfwRenderer(self._window)
 
         self._start_time = time.monotonic()
         self._last_refresh = self._start_time
@@ -213,55 +171,40 @@ class LivePlot:
         return self
 
     def stop(self) -> None:
-        """Close the plot window and release resources.
-
-        Example::
-
-            plot.stop()
-        """
         self._running = False
-        if self._window is not None and _HAS_PYQTGRAPH:
-            try:
-                self._window.close()
-            except Exception:
-                pass
-            self._window = None
-
-    # ------------------------------------------------------------------
-    # Update loop
-    # ------------------------------------------------------------------
+        if self._impl is not None:
+            self._impl.shutdown()
+        if self._implot_context is not None:
+            implot.destroy_context(self._implot_context)
+        if self._imgui_context is not None:
+            imgui.destroy_context(self._imgui_context)
+        if self._window is not None:
+            glfw.destroy_window(self._window)
+        
+        self._window = None
+        self._impl = None
+        self._imgui_context = None
+        self._implot_context = None
 
     def update(self, t: float | None = None) -> None:
-        """Sample all data sources and refresh the plot display.
-
-        Call this once per simulation step. Refresh rate is throttled by
-        ``update_interval_ms`` to avoid excessive Qt overhead.
-
-        Args:
-            t: Timestamp override. If ``None``, uses wall-clock elapsed time
-                since :meth:`start` was called.
-
-        Example::
-
-            for _ in range(5000):
-                sim.step()
-                plot.update()
-        """
-        if not self._running or self._paused:
+        if not self._running:
+            return
+            
+        if glfw.window_should_close(self._window):
+            self.stop()
             return
 
-        timestamp = t if t is not None else (time.monotonic() - self._start_time)
+        if not self._paused:
+            timestamp = t if t is not None else (time.monotonic() - self._start_time)
 
-        # Sample all series
-        for series in self._series:
-            try:
-                val = float(series.source())
-            except Exception:
-                val = float("nan")
-            series.timestamps.append(timestamp)
-            series.values.append(val)
+            for series in self._series:
+                try:
+                    val = float(series.source())
+                except Exception:
+                    val = float("nan")
+                series.timestamps.append(timestamp)
+                series.values.append(val)
 
-        # Throttle display updates
         now = time.monotonic()
         if now - self._last_refresh < self._update_interval:
             return
@@ -270,93 +213,77 @@ class LivePlot:
         self._refresh_display()
 
     def _refresh_display(self) -> None:
-        """Update the Qt plot curves from buffered data."""
-        if not _HAS_PYQTGRAPH or self._plot_widget is None:
+        if not _HAS_IMPLOT or self._window is None:
             return
 
-        import numpy as np
-
-        for series in self._series:
-            if series.curve is not None and len(series.timestamps) > 0:
-                x = np.array(list(series.timestamps))
-                y = np.array(list(series.values))
-                series.curve.setData(x=x, y=y)
-
-        # Process Qt events
-        try:
-            self._app.processEvents()
-        except Exception:
-            pass
-
-    # ------------------------------------------------------------------
-    # Controls
-    # ------------------------------------------------------------------
+        glfw.poll_events()
+        self._impl.process_inputs()
+        
+        imgui.set_current_context(self._imgui_context)
+        implot.set_current_context(self._implot_context)
+        imgui.new_frame()
+        
+        # Render full screen window
+        viewport = imgui.get_main_viewport()
+        imgui.set_next_window_pos(viewport.pos)
+        imgui.set_next_window_size(viewport.size)
+        
+        flags = (imgui.WindowFlags_.no_title_bar.value | 
+                 imgui.WindowFlags_.no_resize.value | 
+                 imgui.WindowFlags_.no_move.value | 
+                 imgui.WindowFlags_.no_collapse.value |
+                 imgui.WindowFlags_.no_bring_to_display_front.value)
+                 
+        imgui.begin(self._title, True, flags)
+        
+        avail = imgui.get_content_region_available()
+        
+        if implot.begin_plot(self._title, avail):
+            implot.setup_axes(self._x_label, self._y_label)
+            
+            for series in self._series:
+                if len(series.timestamps) > 0:
+                    x = np.array(list(series.timestamps), dtype=np.float64)
+                    y = np.array(list(series.values), dtype=np.float64)
+                    
+                    implot.set_next_line_style(hex_to_vec4(series.color), 2.0)
+                    implot.plot_line(series.name, x, y)
+                    
+            implot.end_plot()
+            
+        imgui.end()
+        
+        gl.glClearColor(0.1, 0.1, 0.1, 1)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        
+        imgui.render()
+        self._impl.render(imgui.get_draw_data())
+        glfw.swap_buffers(self._window)
 
     def pause(self) -> None:
-        """Pause data sampling and display updates.
-
-        Example::
-
-            plot.pause()
-        """
         self._paused = True
 
     def resume(self) -> None:
-        """Resume a paused plot.
-
-        Example::
-
-            plot.resume()
-        """
         self._paused = False
 
     def clear(self) -> None:
-        """Clear all data buffers (but keep series registrations).
-
-        Example::
-
-            plot.clear()
-        """
         for series in self._series:
             series.timestamps.clear()
             series.values.clear()
 
     def export(self, filepath: str) -> None:
-        """Export the current plot as an image.
-
-        Args:
-            filepath: Output file path. Supported formats: PNG, JPG (via Qt).
-
-        Example::
-
-            plot.export("speed_plot.png")
-        """
-        if not _HAS_PYQTGRAPH or self._window is None:
-            print("[BulletLab] LivePlot: Cannot export — plot window not open.")
-            return
-        try:
-            exporter = pg.exporters.ImageExporter(self._plot_widget)
-            exporter.export(filepath)
-        except Exception as exc:
-            print(f"[BulletLab] LivePlot export failed: {exc}")
-
-    # ------------------------------------------------------------------
-    # State
-    # ------------------------------------------------------------------
+        print("[BulletLab] LivePlot: image export is not natively supported in ImPlot yet. Please use ImPlot's right-click menu to take a screenshot.")
 
     @property
     def is_running(self) -> bool:
-        """``True`` if the plot window is open."""
         return self._running
 
     @property
     def is_paused(self) -> bool:
-        """``True`` if sampling is paused."""
         return self._paused
 
     @property
     def series_names(self) -> list[str]:
-        """Names of all registered data series."""
         return [s.name for s in self._series]
 
     def __repr__(self) -> str:

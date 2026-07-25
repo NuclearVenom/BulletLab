@@ -6,7 +6,7 @@ The BulletLab UI is a separate Dear ImGui window that runs alongside the PyBulle
 
 ```
 ┌─────────────────────────┐  ┌──────────────────────────────┐
-│   PyBullet Window       │  │   BulletLab ImGui Window     │
+│   PyBullet Window       │  │   BulletLab UI Window        │
 │  • Physics simulation   │  │  • Explorer Panel            │
 │  • 3D rendering         │  │  • Properties Panel          │
 │  • Camera controls      │  │  • Telemetry Panel           │

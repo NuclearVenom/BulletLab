@@ -62,7 +62,7 @@ class MyPanel:
     def render(self) -> None:
         if not _HAS_IMGUI:
             return
-        import imgui
+        from imgui_bundle import imgui
         imgui.text("My Panel")
 ```
 

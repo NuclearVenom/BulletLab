@@ -2,10 +2,10 @@
 
 BulletLab provides two plotting options:
 
-1. **LivePlot** — a full PyQtGraph window with zoom/pan
-2. **PlotsPanel** — lightweight ImGui sparklines inside the BulletLab UI
+1. **LivePlot** — a full ImPlot window with zoom/pan
+2. **PlotsPanel** — lightweight Dear ImGui sparklines inside the BulletLab UI
 
-## LivePlot (PyQtGraph)
+## LivePlot (ImPlot)
 
 ```python
 from bulletlab.plotting import LivePlot
@@ -42,7 +42,7 @@ plot.export("speed_chart.png")
 plot.stop()
 ```
 
-## Inline Plots Panel (ImGui)
+## Inline Plots Panel (Dear ImGui)
 
 When using `BulletLabUI`, a **Plots Panel** is automatically shown with sparklines for all telemetry channels.
 

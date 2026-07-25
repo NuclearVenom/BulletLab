@@ -22,10 +22,9 @@ import math
 from typing import Any, TYPE_CHECKING
 
 try:
-    import imgui
-
+    from imgui_bundle import imgui
     _HAS_IMGUI = True
-except ImportError:  # pragma: no cover
+except ImportError:
     imgui = None  # type: ignore[assignment]
     _HAS_IMGUI = False
 
@@ -58,12 +57,12 @@ class TelemetryPanel:
             return
 
         if not self._telemetry.channel_names:
-            imgui.text_colored("No channels registered.", 0.5, 0.5, 0.5, 1.0)
+            imgui.text_colored(imgui.ImVec4(0.5, 0.5, 0.5, 1.0), "No channels registered.")
             imgui.text("Use telemetry.watch(...) to add channels.")
             return
 
         # Table header
-        imgui.columns(3, "telemetry_table", border=True)
+        imgui.columns(3, "telemetry_table", borders=True)
         imgui.text("Channel")
         imgui.next_column()
         imgui.text("Value")
