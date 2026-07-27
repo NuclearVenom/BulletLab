@@ -42,7 +42,10 @@ def _get_manifest() -> dict:
     global _manifest_cache
     if _manifest_cache is None:
         try:
-            _manifest_cache = fetch_json(ARSENAL_ROBOTS_MANIFEST_URL)
+            import time
+            # Append timestamp to bypass GitHub's 5-minute raw content cache
+            url = f"{ARSENAL_ROBOTS_MANIFEST_URL}?t={int(time.time())}"
+            _manifest_cache = fetch_json(url)
         except Exception as exc:
             raise ManifestError(
                 f"Could not fetch the Arsenal robot manifest: {exc}\n"
@@ -93,7 +96,26 @@ def parse_source(source: str) -> tuple[str, str | None]:
     Returns:
         A ``(package_name, model_id_or_none)`` tuple.
     """
-    parts = source.strip().split("/", 1)
+    source = source.strip()
+    
+    try:
+        manifest = _get_manifest()
+        packages = manifest.get("packages", [])
+        pkg_names = [p.get("package_name") for p in packages if p.get("package_name")]
+        
+        # Sort by length descending to match the longest package path first
+        # This handles nested package names like "unitree/g1_description" correctly
+        for pkg_name in sorted(pkg_names, key=len, reverse=True):
+            if source == pkg_name:
+                return pkg_name, None
+            if source.startswith(pkg_name + "/"):
+                model_id = source[len(pkg_name) + 1:]
+                return pkg_name, model_id
+    except Exception:
+        pass  # Fallback to naive parsing if manifest cannot be loaded
+        
+    # Fallback logic for flat structures or offline errors
+    parts = source.split("/", 1)
     pkg = parts[0].strip()
     model = parts[1].strip() if len(parts) > 1 else None
     return pkg, model

@@ -175,6 +175,9 @@ class Robot:
                 # Derive name from the package portion of the URI
                 name = arsenal_source.split("/")[0]
 
+        if not sim.is_connected:
+            sim.start()
+
         robot_name = name or Path(path_str).stem
 
         # ── Resolve final orientation ─────────────────────────────────────────

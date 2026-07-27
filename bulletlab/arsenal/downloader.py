@@ -65,6 +65,10 @@ def download_package(
     # ------------------------------------------------------------------
     # 1. Download the URDF
     # ------------------------------------------------------------------
+    import sys
+    sys.stdout.write(f"Downloading {package_name} URDF...\n")
+    sys.stdout.flush()
+
     urdf_url = ARSENAL_PACKAGE_FILE_URL.format(
         package_name=package_name,
         rel_path=entrypoint,
@@ -100,7 +104,13 @@ def download_package(
     # Maps original URDF filename string → absolute local path
     local_mesh_paths: dict[str, str] = {}
 
-    for ref in mesh_refs:
+    import sys
+    total_files = len(mesh_refs)
+    if total_files > 0:
+        sys.stdout.write(f"Downloading {total_files} meshes for {package_name}...\n")
+        sys.stdout.flush()
+
+    for i, ref in enumerate(mesh_refs):
         # Normalise: strip any leading "./" or "../" prefix to get a clean
         # package-relative path for the download URL.
         rel_path_for_url = _resolve_ref_to_package_path(ref, entrypoint_dir)
@@ -115,9 +125,22 @@ def download_package(
         local_mesh_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not local_mesh_path.exists():
+            # Show progress
+            progress = (i + 1) / total_files
+            bar_len = 30
+            filled = int(bar_len * progress)
+            bar = '█' * filled + '-' * (bar_len - filled)
+            
+            # Use carriage return and pad with spaces to clear previous text
+            line = f"[{bar}] {i+1}/{total_files} ({Path(ref).name})"
+            sys.stdout.write(f"\r{line:<70}")
+            sys.stdout.flush()
+            
             try:
                 mesh_bytes = fetch_bytes(mesh_url)
             except Exception as exc:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
                 raise CorruptedPackageError(
                     f"Failed to download mesh {ref!r} for package "
                     f"{package_name!r}: {exc}"
@@ -125,6 +148,10 @@ def download_package(
             local_mesh_path.write_bytes(mesh_bytes)
 
         local_mesh_paths[ref] = str(local_mesh_path.resolve())
+
+    if total_files > 0:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     # ------------------------------------------------------------------
     # 4. Rewrite URDF mesh paths to absolute local paths

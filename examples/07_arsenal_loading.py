@@ -38,17 +38,9 @@ def main() -> None:
     # 1. Simulation
     # ------------------------------------------------------------------
     sim = Simulation(mode="gui", gravity=(0, 0, -9.81), timestep=1.0 / 240.0)
-    sim.start()
-    sim.set_camera(distance=3.5, yaw=45.0, pitch=-25.0, target=(0, 0, 0.3))
 
     # ------------------------------------------------------------------
-    # 2. World
-    # ------------------------------------------------------------------
-    world = World(sim)
-    world.load_plane()
-
-    # ------------------------------------------------------------------
-    # 3. Load BLem1 directly from Arsenal (session cache, no install)
+    # 2. Load BLem1 directly from Arsenal (session cache, no install)
     # ------------------------------------------------------------------
     print("\nFetching 'reference_bot/BLem1' from Arsenal registry...")
     robot = Robot.load(
@@ -61,6 +53,12 @@ def main() -> None:
     print(f"  Joints: {list(robot.joints.keys())}")
     print()
 
+    # ------------------------------------------------------------------
+    # 3. World and Camera setup
+    # ------------------------------------------------------------------
+    sim.set_camera(distance=3.5, yaw=45.0, pitch=-25.0, target=(0, 0, 0.3))
+    world = World(sim)
+    world.load_plane()
     # ------------------------------------------------------------------
     # 4. Camera follow
     # ------------------------------------------------------------------
