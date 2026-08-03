@@ -39,6 +39,7 @@ from bulletlab.utils.math_utils import (
 )
 from bulletlab.arsenal.exceptions import ArsenalError
 from bulletlab.console.decorators import command
+from bulletlab.quick_launch import quickLaunch
 
 __version__ = "0.3.0"
 __author__ = "Ranasurya Ghosh"
@@ -62,4 +63,5 @@ __all__ = [
     "axis_angle_to_quaternion",
     "ArsenalError",
     "command",
+    "quickLaunch",
 ]

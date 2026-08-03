@@ -17,9 +17,20 @@ The BulletLab UI is a separate Dear ImGui window that runs alongside the PyBulle
          communicate via Python objects
 ```
 
-## Basic Usage
+## ⚡ Instant UI with `quickLaunch()`
+
+If you want an auto-generated UI without creating `BulletLabUI` instances manually, use `bulletlab.quickLaunch()`:
 
 ```python
+import bulletlab
+
+# Automatically generates Joint Controls (Position/Velocity/Torque), Telemetry, Camera, & Console
+bulletlab.quickLaunch("kuka_iiwa/model.urdf")
+```
+
+---
+
+## Basic Usage (Custom UI)
 from bulletlab.ui import BulletLabUI
 from bulletlab.telemetry import TelemetryManager
 

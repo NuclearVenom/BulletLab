@@ -592,14 +592,15 @@ class BulletLabUI:
         if imgui.collapsing_header("Camera", flags=imgui.TreeNodeFlags_.default_open):
             imgui.indent(8)
 
-            # ── Enable / disable toggle ─────────────────────────────────────
-            changed, new_val = imgui.checkbox("Dynamic Follow", cam.enabled)
-            if changed:
-                cam.enabled = new_val
-            imgui.same_line(0, 12)
-            status = "ON" if cam.enabled else "OFF"
-            color  = (0.3, 0.9, 0.4, 1.0) if cam.enabled else (0.6, 0.6, 0.6, 1.0)
-            imgui.text_colored(imgui.ImVec4(*color), f"[{status}]")
+            # ── Enable / disable toggle (capsule switch) ────────────────────
+            from bulletlab.ui import widgets as _ui_widgets
+            _ui_widgets.toggle_switch(
+                "Dynamic Follow",
+                getter=lambda: cam.enabled,
+                setter=lambda v: setattr(cam, "enabled", v),
+                color_on=(0.2, 0.85, 0.45, 1.0),
+                color_off=(0.35, 0.35, 0.35, 1.0),
+            )
 
             if cam.enabled:
                 imgui.spacing()

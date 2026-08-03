@@ -1,6 +1,6 @@
 # Examples Guide
 
-BulletLab ships with 5 working examples that demonstrate real use cases.
+BulletLab ships with 9 comprehensive, ready-to-run examples demonstrating real use cases.
 
 ## Running the Examples
 
@@ -11,6 +11,10 @@ python examples/02_robotic_arm.py
 python examples/03_self_balancing_robot.py
 python examples/04_drone_parameter_tuning.py
 python examples/05_generic_robot_inspector.py
+python examples/06_irregular_terrain.py
+python examples/07_arsenal_loading.py
+python examples/08_loading_humanoid.py
+python examples/09_quick_launch.py
 ```
 
 ## Example 01 – Differential Drive Rover
@@ -86,3 +90,48 @@ python examples/05_generic_robot_inspector.py /path/to/custom/robot.urdf
 - Dynamic joint/link panel generation
 - RL state vector inspection
 - Universal telemetry
+
+## Example 06 – Irregular Terrain
+
+**File**: `examples/06_irregular_terrain.py`
+
+Demonstrates loading custom procedural heightfields and scattering random obstacle geometries for off-road navigation.
+
+**Demonstrates**:
+- `World.load_heightfield()` procedural terrain
+- `World.scatter_obstacles()` for rock/box fields
+- Rover mobility on uneven geometry
+
+## Example 07 – Arsenal Loading
+
+**File**: `examples/07_arsenal_loading.py`
+
+Demonstrates loading community robot packages directly from the official [BulletLab Arsenal](https://github.com/NuclearVenom/BulletLab-Arsenal) registry using session caching.
+
+**Demonstrates**:
+- `Robot.load("arsenal:reference_bot/BLem1")`
+- Seamless asset downloading and caching
+- Interactive virtual joystick drive panel
+
+## Example 08 – Humanoid Robot Loading
+
+**File**: `examples/08_loading_humanoid.py`
+
+Loads a multi-DOF humanoid robot, sets up joint limits, and monitors high-dimensional telemetry.
+
+**Demonstrates**:
+- High-DOF kinematic tree handling
+- Complex joint hierarchy inspection
+- Multi-joint telemetry tracking
+
+## Example 09 – Instant Deployment (`quickLaunch`)
+
+**File**: `examples/09_quick_launch.py`
+
+Demonstrates BulletLab's signature one-line deployment feature with built-in, local, and Arsenal models.
+
+**Demonstrates**:
+- `bulletlab.quickLaunch("arsenal:reference_bot")`
+- 3-mode joint controls (Position, Velocity, Torque)
+- Dynamic camera tracking with capsule toggle switch
+- Zero-configuration interactive inspection

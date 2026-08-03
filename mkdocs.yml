@@ -66,6 +66,7 @@ nav:
       - Core Concepts: concepts.md
       - Using the UI: ui_guide.md
   - API Reference:
+    - Quick Launch: api/quick_launch.md
     - Simulation: api/simulation.md
     - Robot: api/robot.md
     - Joint: api/joint.md

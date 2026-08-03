@@ -2,8 +2,32 @@
 
 This cookbook provides short, copy-pasteable snippets for common tasks in BulletLab. 
 
-## 1. Minimal Simulation Loop
-The most basic setup to get a physics world running with a plane and a robot.
+## 1. Instant Model Deployment (`quickLaunch`)
+Deploy any robot model (URDF/MJCF or Arsenal package) into a full GUI simulation with interactive joint controls (Position / Velocity / Torque modes), dynamic camera tracking, live telemetry, and an interactive console in **just one line of code**:
+
+```python
+import bulletlab
+
+# Basic 1-line deployment
+bulletlab.quickLaunch("r2d2.urdf")
+
+# Deploy directly from BulletLab Arsenal (assets pre-cached before window opens)
+bulletlab.quickLaunch("arsenal:reference_bot")
+
+# Deploy with custom camera, gravity, and spawn parameters
+bulletlab.quickLaunch(
+    "kuka_iiwa/model.urdf",
+    gravity=(0, 0, -9.81),
+    camera_distance=3.0,
+    camera_pitch=-25.0,
+    camera_mode="smooth",       # "smooth", "chase", or "snap"
+    spawn_position=(0, 0, 0.1),
+    ground_plane=True,
+)
+```
+
+## 2. Minimal Simulation Loop
+The most basic setup to get a custom physics world running with a plane and a robot.
 
 ```python
 from bulletlab import Simulation, Robot

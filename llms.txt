@@ -4,6 +4,7 @@ BulletLab is a high-level, object-oriented Python wrapper for the PyBullet physi
 
 ## Key Concepts
 
+*   **Quick Launch**: `bulletlab.quickLaunch(path)` — Signature 1-line deployment. Launches any URDF/MJCF/Arsenal model in GUI mode with auto-generated 3-mode joint controls (Position/Velocity/Torque), telemetry, dynamic camera, and console.
 *   **Simulation**: `bulletlab.Simulation` manages the PyBullet connection, stepping, and configuration.
 *   **Robot**: `bulletlab.Robot` represents a loaded URDF/MJCF file. It provides dictionary-like access to joints (`robot.joints`) and links (`robot.links`).
 *   **Joint**: `bulletlab.Joint` allows reading state (position, velocity, effort) and setting targets (`joint.position = 1.0`, `joint.velocity = 5.0`).
@@ -13,7 +14,16 @@ BulletLab is a high-level, object-oriented Python wrapper for the PyBullet physi
 
 ## Core API Usage
 
-### Initialization and Loading
+### ⚡ 1-Line Deployment (`quickLaunch`)
+```python
+import bulletlab
+
+# Deploy any local model or Arsenal registry model instantly with complete UI
+bulletlab.quickLaunch("kuka_iiwa/model.urdf")
+bulletlab.quickLaunch("arsenal:reference_bot")
+```
+
+### Custom Simulation & Loading
 ```python
 from bulletlab import Simulation, Robot
 from bulletlab.core.world import World

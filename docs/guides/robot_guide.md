@@ -2,9 +2,25 @@
 
 This guide covers everything about loading and controlling robots in BulletLab.
 
-## Loading Robots
+## ⚡ Instant Model Inspection (`quickLaunch`)
 
-BulletLab supports URDF and MJCF formats. Use `Robot.load()`:
+If you want to quickly test or inspect a robot without writing a full simulation script, use `quickLaunch()`:
+
+```python
+import bulletlab
+
+# 1-line deployment with full UI, 3-mode joint controls, and telemetry
+bulletlab.quickLaunch("kuka_iiwa/model.urdf")
+
+# Works with Arsenal packages too:
+bulletlab.quickLaunch("arsenal:reference_bot")
+```
+
+---
+
+## Loading Robots Programmatically
+
+For custom physics loops and dashboards, use `Robot.load()`:
 
 ```python
 from bulletlab import Simulation, Robot

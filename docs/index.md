@@ -26,6 +26,7 @@ BulletLab provides a high-level object-oriented interface to [PyBullet](https://
 
 
 ## Key Features
+- **⚡ One-Line Model Deployment (`quickLaunch`)** — deploy and inspect any model (local URDF or [Arsenal package](guides/arsenal_guide.md)) with a single line of code, complete with interactive 3-mode joint controls, telemetry, and camera tracking
 - **Object-oriented robot interface** — joints and links as Python objects
 - **Dear ImGui control window** — modern interface, separate from PyBullet visualization
 - **Interactive UI Console** — live test API calls, script sequential movements, and register custom [commands](guides/console_guide.md#built-in-commands)
@@ -37,6 +38,22 @@ BulletLab provides a high-level object-oriented interface to [PyBullet](https://
 - **Generic** — works with any URDF or MJCF robot
 
 ## Quick Start
+
+### Instant Deployment (`quickLaunch`)
+
+Deploy any robot model in a full interactive simulation with rich UI controls in **just one line**:
+
+```python
+import bulletlab
+
+# Deploy a built-in URDF or local file
+bulletlab.quickLaunch("kuka_iiwa/model.urdf")
+
+# Or deploy directly from BulletLab Arsenal
+bulletlab.quickLaunch("arsenal:reference_bot")
+```
+
+### Custom Simulation Script
 
 ```python
 from bulletlab import Simulation, Robot

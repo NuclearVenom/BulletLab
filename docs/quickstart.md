@@ -11,7 +11,32 @@ pip install bulletlab
 pip install -e ".[dev]"
 ```
 
-## Your First Simulation
+## ⚡ One-Line Model Deployment (`quickLaunch`)
+
+The absolute fastest way to get started with BulletLab is `quickLaunch()`. Just pass a robot model path or an Arsenal URI, and your model is immediately deployed into an interactive simulation with real-time joint controls, telemetry, and camera follow:
+
+```python
+import bulletlab
+
+# Deploy a built-in model or local URDF/MJCF file
+bulletlab.quickLaunch("kuka_iiwa/model.urdf")
+
+# Or deploy directly from BulletLab Arsenal
+bulletlab.quickLaunch("arsenal:reference_bot")
+```
+
+`quickLaunch()` automatically configures:
+- **Joint Control Panel:** Instant Position, Velocity, and Torque control sliders per joint
+- **Dynamic Camera Follow:** Smooth tracking with an interactive capsule toggle switch
+- **Real-Time Telemetry:** Position, velocity, speed, roll/pitch/yaw angles, and joint positions
+- **Interactive Python Console:** Live script and interact with your simulation
+- **Arsenal Pre-Fetching:** Downloads model assets before window creation so you never see an empty viewport
+
+---
+
+## Building a Custom Simulation
+
+For granular control over the simulation loop, world geometry, controllers, and custom UI dashboards:
 
 ```python
 from bulletlab import Simulation, Robot

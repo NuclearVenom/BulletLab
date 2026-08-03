@@ -43,6 +43,29 @@ p.setJointMotorControl2(
 robot.joints["motor"].velocity = 15
 ```
 
+### One-Line Deployment with `quickLaunch()`
+
+Deploy any robot model in a full interactive simulation with rich UI controls in **just one line of Python**:
+
+```python
+import bulletlab
+
+# Deploy a built-in URDF or local file
+bulletlab.quickLaunch("husky/husky.urdf")
+
+# Or deploy directly from BulletLab Arsenal
+bulletlab.quickLaunch("arsenal:reference_bot")
+```
+
+`quickLaunch()` automatically sets up:
+* **Auto-generated UI** with real-time **Joint Control** supporting **Position**, **Velocity**, and **Torque** modes per joint
+* **Dynamic Camera Tracking** with smooth follow mode and interactive capsule toggle switch
+* **Live Telemetry** tracking base pose, speed, roll/pitch/yaw, and joint angles
+* **Interactive Console Panel** for live Python experimentation
+* **Zero Empty Windows** — Arsenal models are downloaded and pre-cached before the window opens for a seamless experience
+
+---
+
 ### BulletLab Arsenal: The Official Package Registry
 
 Just as Python has PyPI for software packages, BulletLab has **[Arsenal](https://github.com/NuclearVenom/BulletLab-Arsenal)** for verified robotics assets. 
@@ -51,7 +74,7 @@ Arsenal is the official registry of the BulletLab ecosystem. It solves the long-
 
 * **Verified Robot Packages:** Curated, community-contributed models guaranteed to load correctly.
 * **One-Line Installation:** Permanently download assets to your local machine (`Robot.install()`).
-* **Direct Loading:** Stream assets directly into your session cache without permanently modifying your filesystem (`Robot.load("arsenal:...")`).
+* **Direct Loading:** Stream assets directly into your session cache without permanently modifying your filesystem (`Robot.load("arsenal:...")` or `quickLaunch("arsenal:...")`).
 * **Standardized Package Format:** Powered by machine-readable manifests (`metadata.json`) for automated validation.
 
 Whether you are conducting reproducible research or building quick demos, Arsenal ensures you spend less time configuring assets and more time writing robotics code.
@@ -87,7 +110,20 @@ cd BulletLab
 pip install -e .
 ```
 
-### Basic Example
+### 1-Line Deployment (`quickLaunch`)
+
+The quickest way to inspect and test any robot:
+
+```python
+import bulletlab
+
+# Load local URDF/MJCF or Arsenal model instantly with full UI
+bulletlab.quickLaunch("kuka_iiwa/model.urdf")
+```
+
+### Custom Workflow Example
+
+For custom simulation loops, control logic, and dashboards:
 
 ```python
 from bulletlab import Simulation, Robot
@@ -298,12 +334,15 @@ robot.apply_action(action)     # → updates joints
 
 | Example | Description |
 |---------|-------------|
-| `examples/01_differential_drive_rover.py` | Rover with wheel velocity control |
+| `examples/01_differential_drive_rover.py` | Rover with wheel velocity control & virtual joystick |
 | `examples/02_robotic_arm.py` | Joint position control with Dear ImGui sliders |
 | `examples/03_self_balancing_robot.py` | PD controller for balance |
 | `examples/04_drone_parameter_tuning.py` | Thrust/mass parameter exploration |
 | `examples/05_generic_robot_inspector.py` | Load any URDF and inspect it |
-...and more
+| `examples/06_irregular_terrain.py` | Heightfield and procedural obstacle navigation |
+| `examples/07_arsenal_loading.py` | Direct loading of models from BulletLab Arsenal |
+| `examples/08_loading_humanoid.py` | Loading complex humanoid robotics models |
+| `examples/09_quick_launch.py` | One-liner instant model inspection and deployment |
 
 Run any example:
 ```bash

@@ -11,11 +11,16 @@ Think of it as PyPI for robotics assets.
 ## Quick Reference
 
 ```python
-# Permanently install to ~/.bulletlab/packages/
-Robot.install("reference_bot")
+import bulletlab
 
-# Load directly (session cache — no permanent files)
-robot = Robot.load("arsenal:reference_bot", sim=sim)
+# ⚡ One-liner: Deploy any Arsenal model immediately with full UI
+bulletlab.quickLaunch("arsenal:reference_bot")
+
+# Permanently install to ~/.bulletlab/packages/
+bulletlab.Robot.install("reference_bot")
+
+# Load directly into a custom simulation (session cache — no permanent files)
+robot = bulletlab.Robot.load("arsenal:reference_bot", sim=sim)
 ```
 
 ---
@@ -97,6 +102,28 @@ robot = Robot.load(
 
 All `Robot.load()` parameters (`position`, `orientation`, `fixed_base`, `scale`,
 `flags`, `tilt`, `name`) work identically with Arsenal sources.
+
+---
+
+## ⚡ Instant Deployment with `quickLaunch()`
+
+For fast inspection and testing, `quickLaunch()` combines Arsenal downloading, world creation, physics stepping, and the complete BulletLab UI into **a single line of code**:
+
+```python
+import bulletlab
+
+# Deploy the default model of an Arsenal package
+bulletlab.quickLaunch("arsenal:reference_bot")
+
+# Deploy a specific model variant
+bulletlab.quickLaunch("arsenal:reference_bot/BLem1")
+```
+
+### Why use `quickLaunch()` for Arsenal models?
+1. **Pre-Cached Window Creation:** Arsenal assets are fully downloaded and resolved *before* the PyBullet simulation window opens. You never see an empty, unresponsive window during network downloads.
+2. **Auto-Generated UI:** Automatically builds a custom joint controller supporting **Position**, **Velocity**, and **Torque** modes per joint.
+3. **Dynamic Camera Follow:** Keeps the camera tracking the robot with an interactive capsule toggle switch.
+4. **Live Telemetry & Console:** Real-time state readouts and live Python REPL out of the box.
 
 ---
 
