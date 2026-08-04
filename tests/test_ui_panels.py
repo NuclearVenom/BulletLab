@@ -206,6 +206,7 @@ class TestConsolePanel:
 
             def __init__(self):
                 self.focus_calls = 0
+                self._input_text_calls = 0
 
             def __getattr__(self, name):
                 if name in ("get_content_region_available", "get_content_region_avail"):
@@ -213,17 +214,28 @@ class TestConsolePanel:
                 if name in ("get_cursor_pos", "get_cursor_screen_pos"):
                     return lambda: type("ImVec2", (), {"x": 0.0, "y": 0.0})()
                 if name == "get_window_draw_list":
-                    _dl = type("DrawList", (), {"__getattr__": lambda s, n: (lambda *a, **k: None)})() 
+                    _dl = type("DrawList", (), {"__getattr__": lambda s, n: (lambda *a, **k: None)})()
                     return lambda: _dl
                 if name == "input_text":
-                    return lambda *args, **kwargs: (submit_with_enter, "x = 42")
+                    return self._input_text
                 if name == "button":
+                    # Run button fires on first render only (mirrors enter-key submit toggle)
                     return lambda label, *args, **kwargs: (
-                        label.startswith("Run##") and not submit_with_enter
+                        label.startswith("Run##")
+                        and not submit_with_enter
+                        and self._input_text_calls <= 1
                     )
                 if name == "set_keyboard_focus_here":
                     return self._set_focus
                 return _NoOpProxy()
+
+            def _input_text(self, *args, **kwargs):
+                self._input_text_calls += 1
+                if self._input_text_calls == 1:
+                    # First render: simulate user having typed "x = 42" and pressing Enter
+                    return (submit_with_enter, "x = 42")
+                # Subsequent renders: widget is empty (buffer was cleared after submit)
+                return (False, "")
 
             def _set_focus(self):
                 self.focus_calls += 1

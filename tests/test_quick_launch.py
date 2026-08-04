@@ -123,5 +123,5 @@ class TestQuickLaunch:
             mock_robot_load.assert_called_once()
             _, kwargs = mock_robot_load.call_args
             assert kwargs["position"] == (1.0, 2.0, 3.0)
-            assert kwargs["name"] == "R2D2"
+            assert kwargs["name"] == "r2d2"  # Path.stem of 'r2d2.urdf'
             mock_robot.auto_ground.assert_not_called()

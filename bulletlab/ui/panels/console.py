@@ -466,6 +466,8 @@ class ConsolePanel:
             self._input_buf[0],
             flags=imgui.InputTextFlags_.enter_returns_true,
         )
+        # Update the buffer from the widget unconditionally so that
+        # _submit_input() can read the latest text the user typed.
         self._input_buf[0] = new_text
 
         imgui.pop_item_width()
@@ -491,8 +493,7 @@ class ConsolePanel:
         if command:
             self.execute(command)
             self._input_buf[0] = ""
-
-        self._focus_input = True
+            self._focus_input = True
 
     # ------------------------------------------------------------------
     # Internal
