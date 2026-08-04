@@ -166,6 +166,8 @@ class BulletLabUI:
         self._show_console = True
         self._show_plots = True
 
+        self._first_frame = True
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
@@ -391,6 +393,10 @@ class BulletLabUI:
                 | imgui.WindowFlags_.no_move
             ),
         )
+
+        if self._first_frame:
+            imgui.set_scroll_y(0.0)
+            self._first_frame = False
 
         # ── Camera panel (shown first when a CameraFollow is registered) ──────
         self._render_camera_panel()
@@ -638,36 +644,36 @@ class BulletLabUI:
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("View"):
                 _, self._show_explorer = imgui.menu_item(
-                    "Explorer", selected=self._show_explorer
+                    "Explorer", "", self._show_explorer
                 )
                 _, self._show_properties = imgui.menu_item(
-                    "Properties", selected=self._show_properties
+                    "Properties", "", self._show_properties
                 )
                 _, self._show_telemetry = imgui.menu_item(
-                    "Telemetry", selected=self._show_telemetry
+                    "Telemetry", "", self._show_telemetry
                 )
                 _, self._show_plots = imgui.menu_item(
-                    "Plots", selected=self._show_plots
+                    "Plots", "", self._show_plots
                 )
                 _, self._show_console = imgui.menu_item(
-                    "Console", selected=self._show_console
+                    "Console", "", self._show_console
                 )
                 imgui.end_menu()
 
             if imgui.begin_menu("Simulation"):
-                if imgui.menu_item("Pause")[0] and not self._sim.is_paused:
+                if imgui.menu_item("Pause", "", False)[0] and not self._sim.is_paused:
                     self._sim.pause()
-                if imgui.menu_item("Resume")[0] and self._sim.is_paused:
+                if imgui.menu_item("Resume", "", False)[0] and self._sim.is_paused:
                     self._sim.resume()
-                if imgui.menu_item("Reset")[0]:
+                if imgui.menu_item("Reset", "", False)[0]:
                     self._sim.reset()
                 imgui.end_menu()
 
             # Status bar
             sim_status = "(Paused)" if self._sim.is_paused else "(Running)"
-            imgui.same_line(0, 20)
+            
             imgui.text(
-                f"  {sim_status}  |  "
+                f"    {sim_status}  |  "
                 f"Step: {self._sim.step_count}  |  "
                 f"t={self._sim.elapsed_time:.2f}s  |  "
                 f"Robots: {len(self._robots)}"

@@ -104,7 +104,7 @@ class ConsolePanel:
         self._history: deque[str] = deque(maxlen=max_history)
         self._input_buf: list[str] = [""]  # mutable for imgui input
         self._scroll_to_bottom: bool = False
-        self._focus_input: bool = True
+        self._focus_input: bool = False
         self._expanded: bool = False
         self._expanded_output_height: float = 260.0
 
@@ -332,7 +332,7 @@ class ConsolePanel:
     def collapse(self) -> None:
         """Return the console to its compact panel representation."""
         self._expanded = False
-        self._focus_input = True
+        self._focus_input = False
 
     def render_expanded(self) -> None:
         """Draw expanded console content inside its native host window."""

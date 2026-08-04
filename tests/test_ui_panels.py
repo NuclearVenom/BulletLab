@@ -239,7 +239,11 @@ class TestConsolePanel:
         assert namespace["x"] == 42
         assert panel._input_buf == [""]
         assert panel._focus_input is True
+
+        # Next frame consumes the focus request
+        panel.render()
         assert fake_imgui.focus_calls == 1
+        assert panel._focus_input is False
 
     def test_expanded_console_runs_multiline_and_resizes_output(self, monkeypatch):
         from bulletlab.ui.panels import console as con_mod
