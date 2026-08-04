@@ -51,6 +51,7 @@ class TestQuickLaunch:
             mock_start.assert_called_once()
             mock_plane.assert_called_once()
             mock_robot_load.assert_called_once()
+            mock_robot.auto_ground.assert_called_once_with(clearance=0.02)
 
     @patch("bulletlab.robot.robot.Robot._load_from_arsenal")
     @patch("bulletlab.robot.robot.Robot.load")
@@ -89,3 +90,38 @@ class TestQuickLaunch:
             assert call_order == ["arsenal_download", "sim_start"], (
                 "Arsenal download MUST occur before Simulation.start() opens the GUI window"
             )
+
+    @patch("bulletlab.robot.robot.Robot.load")
+    @patch("bulletlab.core.world.World.load_plane")
+    @patch("bulletlab.core.simulation.Simulation.start")
+    @patch("bulletlab.core.simulation.Simulation.set_camera")
+    def test_quick_launch_custom_spawn_position(
+        self, mock_camera, mock_start, mock_plane, mock_robot_load
+    ):
+        """When spawn_position is explicitly given, auto_ground is skipped."""
+        mock_robot = MagicMock()
+        mock_robot.name = "TestBot"
+        mock_robot.joints = {}
+        mock_robot.controllable_joints = []
+        mock_robot.links = {}
+        mock_robot.get_state.return_value = [0.0] * 6
+        mock_robot.base_position = (1.0, 2.0, 3.0)
+        mock_robot.speed = 0.0
+        mock_robot.roll = 0.0
+        mock_robot.pitch = 0.0
+        mock_robot.yaw = 0.0
+        mock_robot_load.return_value = mock_robot
+
+        with patch("bulletlab.ui.BulletLabUI") as mock_ui_cls, \
+             patch("bulletlab.core.simulation.Simulation.is_connected", side_effect=[True, False]):
+            mock_ui = MagicMock()
+            mock_ui.should_close = True
+            mock_ui_cls.return_value = mock_ui
+
+            quickLaunch("r2d2.urdf", spawn_position=(1.0, 2.0, 3.0))
+
+            mock_robot_load.assert_called_once()
+            _, kwargs = mock_robot_load.call_args
+            assert kwargs["position"] == (1.0, 2.0, 3.0)
+            assert kwargs["name"] == "R2D2"
+            mock_robot.auto_ground.assert_not_called()

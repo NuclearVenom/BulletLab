@@ -116,3 +116,25 @@ class TestRobotReset:
         pos = r2d2_robot.base_position
         assert abs(pos[0]) < 0.05
         assert abs(pos[1]) < 0.05
+
+
+class TestRobotGrounding:
+    def test_get_aabb_returns_valid_bounds(self, r2d2_robot):
+        aabb_min, aabb_max = r2d2_robot.get_aabb()
+        assert len(aabb_min) == 3
+        assert len(aabb_max) == 3
+        assert aabb_min[0] <= aabb_max[0]
+        assert aabb_min[1] <= aabb_max[1]
+        assert aabb_min[2] <= aabb_max[2]
+
+    def test_auto_ground_aligns_lowest_point(self, r2d2_robot):
+        clearance = 0.02
+        r2d2_robot.auto_ground(clearance=clearance)
+        aabb_min, _ = r2d2_robot.get_aabb()
+        assert math.isclose(aabb_min[2], clearance, abs_tol=1e-3)
+
+    def test_load_with_auto_ground(self, sim_with_plane):
+        from bulletlab.robot.robot import Robot
+        robot = Robot.load("r2d2.urdf", sim=sim_with_plane, auto_ground=True)
+        aabb_min, _ = robot.get_aabb()
+        assert math.isclose(aabb_min[2], 0.02, abs_tol=1e-3)

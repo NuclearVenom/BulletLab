@@ -47,7 +47,7 @@ _DEFAULT_CAM_DIST   = 2.5
 _DEFAULT_CAM_YAW    = 45.0
 _DEFAULT_CAM_PITCH  = -20.0
 _DEFAULT_CAM_TARGET = (0.0, 0.0, 0.3)
-_DEFAULT_SPAWN_POS  = (0.0, 0.0, 0.05)
+_DEFAULT_SPAWN_POS  = (0.0, 0.0, 0.0)
 
 # Control mode names cycling order
 _MODES = ("Position", "Velocity", "Torque")
@@ -83,7 +83,7 @@ def quickLaunch(
                  Default: ``(0, 0, -9.81)``.
         timestep: Physics timestep in seconds. Default: ``1/240``.
         spawn_position: Robot spawn position ``(x, y, z)``.
-                        Defaults to ``(0, 0, 0.05)`` — just above the ground.
+                        Defaults to ``None`` (automatically placed just above the ground plane).
         camera_distance: Initial camera distance from the robot in metres.
         camera_yaw: Initial camera yaw in degrees.
         camera_pitch: Initial camera pitch in degrees (negative = looking down).
@@ -191,6 +191,8 @@ def quickLaunch(
             position=pos,
             name=display_name,
         )
+        if spawn_position is None:
+            robot.auto_ground(clearance=0.02)
     except Exception as exc:
         print(f"[quickLaunch] ERROR loading model: {exc}", file=sys.stderr)
         sim.stop()

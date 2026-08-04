@@ -101,6 +101,7 @@ class Robot:
         scale: float = 1.0,
         flags: int = 0,
         tilt: "tuple[tuple[float, float, float], float] | None" = None,
+        auto_ground: bool = False,
     ) -> "Robot":
         """Load a robot from a URDF/MJCF file or an Arsenal package.
 
@@ -242,6 +243,8 @@ class Robot:
             initial_position=position,
             initial_orientation=orientation,
         )
+        if auto_ground:
+            robot.auto_ground()
         sim.add_robot(robot)
         return robot
 
@@ -577,6 +580,92 @@ class Robot:
     def scale(self, factor: float) -> None:
         """Scale the robot. (Requires re-loading in PyBullet)"""
         raise NotImplementedError("Dynamic scaling of existing robots is not yet supported in PyBullet.")
+
+    def get_aabb(self) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+        """Return the axis-aligned bounding box (AABB) of the entire robot in world coordinates.
+
+        Queries the bounding boxes of the base link and all child links,
+        returning the overall enclosing min and max 3D coordinates.
+
+        Returns:
+            A tuple of ``((min_x, min_y, min_z), (max_x, max_y, max_z))``.
+
+        Example::
+
+            (min_x, min_y, min_z), (max_x, max_y, max_z) = robot.get_aabb()
+            height = max_z - min_z
+        """
+        cid = self._sim.client_id
+        num_j = p.getNumJoints(self._body_id, physicsClientId=cid)
+
+        min_coords = [float("inf"), float("inf"), float("inf")]
+        max_coords = [float("-inf"), float("-inf"), float("-inf")]
+        found = False
+
+        for link_idx in range(-1, num_j):
+            aabb_min, aabb_max = p.getAABB(self._body_id, link_idx, physicsClientId=cid)
+            # Filter out invalid / uninitialized AABBs from PyBullet
+            if (
+                aabb_min[0] <= aabb_max[0]
+                and aabb_min[1] <= aabb_max[1]
+                and aabb_min[2] <= aabb_max[2]
+                and abs(aabb_min[0]) < 1e6
+                and abs(aabb_min[1]) < 1e6
+                and abs(aabb_min[2]) < 1e6
+                and abs(aabb_max[0]) < 1e6
+                and abs(aabb_max[1]) < 1e6
+                and abs(aabb_max[2]) < 1e6
+            ):
+                for axis in range(3):
+                    min_coords[axis] = min(min_coords[axis], aabb_min[axis])
+                    max_coords[axis] = max(max_coords[axis], aabb_max[axis])
+                found = True
+
+        if not found:
+            bx, by, bz = self.base_position
+            return ((bx, by, bz), (bx, by, bz))
+
+        return (
+            (float(min_coords[0]), float(min_coords[1]), float(min_coords[2])),
+            (float(max_coords[0]), float(max_coords[1]), float(max_coords[2])),
+        )
+
+    def auto_ground(self, clearance: float = 0.02, ground_z: float = 0.0) -> None:
+        """Adjust the robot's base position along the Z axis so its lowest point rests just above the ground.
+
+        Calculates the full bounding box across all links and shifts the base
+        so that ``lowest_z == ground_z + clearance``. Also updates the initial
+        reset position so subsequent calls to :meth:`reset` maintain the grounded pose.
+
+        Args:
+            clearance: Distance in meters above the ground plane (default: ``0.02``).
+            ground_z: Z coordinate of the ground plane (default: ``0.0``).
+
+        Example::
+
+            robot.auto_ground(clearance=0.02)
+        """
+        (min_x, min_y, min_z), _ = self.get_aabb()
+        target_z = ground_z + clearance
+        shift_z = target_z - min_z
+
+        cur_pos = list(self.base_position)
+        cur_orn = list(self.base_orientation)
+        cur_pos[2] += shift_z
+
+        p.resetBasePositionAndOrientation(
+            self._body_id,
+            cur_pos,
+            cur_orn,
+            physicsClientId=self._sim.client_id,
+        )
+        p.resetBaseVelocity(
+            self._body_id,
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            physicsClientId=self._sim.client_id,
+        )
+        self._initial_position = (float(cur_pos[0]), float(cur_pos[1]), float(cur_pos[2]))
 
     # ------------------------------------------------------------------
     # RL interface
