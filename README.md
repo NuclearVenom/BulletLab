@@ -343,6 +343,7 @@ robot.apply_action(action)     # → updates joints
 | `examples/07_arsenal_loading.py` | Direct loading of models from BulletLab Arsenal |
 | `examples/08_loading_humanoid.py` | Loading complex humanoid robotics models |
 | `examples/09_quick_launch.py` | One-liner instant model inspection and deployment |
+| `examples/10_headless_robot_contract.py` | Export any URDF's action, observation, joint, and link contract as JSON |
 
 Run any example:
 ```bash

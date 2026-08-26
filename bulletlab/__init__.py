@@ -29,6 +29,7 @@ from bulletlab.core.highlighter import RobotHighlighter
 from bulletlab.robot.robot import Robot
 from bulletlab.robot.joint import Joint
 from bulletlab.robot.link import Link
+from bulletlab.robot.contract import robot_contract
 from bulletlab.telemetry.manager import TelemetryManager
 from bulletlab.logging.logger import DataLogger
 from bulletlab.plotting.live_plot import LivePlot
@@ -54,6 +55,7 @@ __all__ = [
     "Robot",
     "Joint",
     "Link",
+    "robot_contract",
     "TelemetryManager",
     "DataLogger",
     "LivePlot",
