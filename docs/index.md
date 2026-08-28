@@ -73,6 +73,8 @@ while True:
 
 ## Installation
 
+> **Requirements:** Python 3.11–3.13, 64-bit. The BulletLab GUI dependencies use prebuilt binary wheels on supported Windows Python versions, so no C++ compiler is required for the normal Windows installation.
+
 ```bash
 pip install bulletlab
 ```

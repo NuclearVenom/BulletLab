@@ -4,6 +4,8 @@ Get up and running with BulletLab in 5 minutes.
 
 ## Installation
 
+> **Requirements:** Python 3.11–3.13, 64-bit. Windows, Linux, and macOS are supported.
+
 ```bash
 pip install bulletlab
 

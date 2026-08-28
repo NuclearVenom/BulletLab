@@ -41,7 +41,7 @@ from bulletlab.arsenal.exceptions import ArsenalError
 from bulletlab.console.decorators import command
 from bulletlab.quick_launch import quickLaunch
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __author__ = "Ranasurya Ghosh"
 __url__ = "https://github.com/NuclearVenom/BulletLab"
 __license__ = "MIT"

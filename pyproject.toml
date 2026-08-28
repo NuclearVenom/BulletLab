@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "BulletLab"
-version = "0.3.0"
+version = "0.3.1"
 
 description = "A high-level robotics simulation and experimentation framework built on PyBullet."
 
@@ -20,7 +20,7 @@ maintainers = [
     { name = "Ranasurya Ghosh", email = "ranasuryaghosh@gmail.com" }
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11, <3.14"
 
 keywords = [
     "robotics",
@@ -45,9 +45,9 @@ classifiers = [
     "Operating System :: OS Independent",
 
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -59,7 +59,9 @@ dependencies = [
     "numpy>=1.24.0",
     "pandas>=2.0.0",
     "pyyaml>=6.0",
-    "imgui-bundle==1.5.2",
+    "imgui-bundle>=1.6.0,<2.0",
+    "PyOpenGL>=3.1.0",
+    "glfw>=2.5.0",
 ]
 
 [project.optional-dependencies]

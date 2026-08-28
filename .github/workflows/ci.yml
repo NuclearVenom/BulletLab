@@ -9,17 +9,18 @@ on:
       - main
 
 jobs:
+  # ── Unit tests (Ubuntu, headless) ─────────────────────────────────────────
   test:
-    name: Python ${{ matrix.python-version }}
+    name: Tests · Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
 
     steps:
       - name: Checkout repository
@@ -42,3 +43,46 @@ jobs:
 
       - name: Run test suite
         run: python -m pytest -v --tb=short
+
+  # ── Binary-wheel install check (Windows) ──────────────────────────────────
+  # Ensures imgui-bundle resolves to a prebuilt wheel on Windows for each
+  # supported Python version — prevents a repeat of the 1.5.2/CMake failure.
+  wheel-install:
+    name: Wheel install · Windows · Python ${{ matrix.python-version }}
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Build BulletLab wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel
+
+      - name: Install from built wheel (binary-only imgui-bundle)
+        # --only-binary=imgui-bundle fails the step if pip would need to
+        # compile imgui-bundle from source, catching the CMake regression.
+        run: |
+          $wheel = (Get-ChildItem dist\*.whl | Select-Object -First 1).FullName
+          python -m pip install "$wheel" --only-binary=imgui-bundle
+
+      - name: Smoke test import
+        run: python -c "import bulletlab; print('BulletLab', bulletlab.__version__)"

@@ -34,7 +34,6 @@ import sys
 import time
 from collections import deque
 from typing import Any, Callable
-import OpenGL.GL as gl
 
 try:
     from imgui_bundle import imgui, implot
@@ -49,10 +48,12 @@ try:
     except ImportError:
         from imgui_bundle.python_backends.opengl_backend import OpenGLRenderer as GlfwRenderer  # type: ignore
 
+    import OpenGL.GL as gl
     import numpy as np
     _HAS_IMPLOT = True
 except ImportError:
     _HAS_IMPLOT = False
+    gl = None  # type: ignore[assignment]
 
 def hex_to_vec4(hex_str: str) -> imgui.ImVec4:
     """Convert #RRGGBB to ImVec4."""
