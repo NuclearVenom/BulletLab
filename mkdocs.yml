@@ -36,6 +36,11 @@ theme:
 extra_css:
   - styles.css
 
+# Build the Examples page from the repository's examples/ directory.  This
+# runs locally and in GitHub Actions, so the page stays in sync with new files.
+hooks:
+  - docs/hooks/generate_examples.py
+
 plugins:
   - search
   - mkdocstrings:
@@ -60,6 +65,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Examples: examples.md
   - User Guide:
       - Quick Start: quickstart.md
       - Cookbook & Snippets: cookbook.md

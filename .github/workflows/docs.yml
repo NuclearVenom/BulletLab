@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - docs/**
+      - examples/**
       - mkdocs.yml
       - .github/workflows/docs.yml
 

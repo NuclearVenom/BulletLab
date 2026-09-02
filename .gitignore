@@ -73,6 +73,7 @@ venv.bak/
 
 # MkDocs
 site/
+docs/examples.md
 
 # Data files from experiments
 *.csv
